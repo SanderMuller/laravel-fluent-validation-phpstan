@@ -1,0 +1,37 @@
+<?php declare(strict_types=1);
+
+namespace SanderMuller\LaravelFluentValidationPhpstan\Traits;
+
+use PHPStan\Analyser\Scope;
+
+trait ChecksNamespace
+{
+    protected function namespaceStartsWith(Scope $scope, string $namespace): bool
+    {
+        $scopeNamespace = $scope->getNamespace();
+
+        if ($scopeNamespace === null) {
+            return false;
+        }
+
+        if ($namespace === $scopeNamespace) {
+            return true;
+        }
+
+        return str_starts_with($scopeNamespace, rtrim($namespace, '\\') . '\\');
+    }
+
+    /**
+     * @param  list<string>  $namespaces
+     */
+    protected function namespaceStartsWithAny(Scope $scope, array $namespaces): bool
+    {
+        foreach ($namespaces as $namespace) {
+            if ($this->namespaceStartsWith($scope, $namespace)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

@@ -1,0 +1,78 @@
+{
+    "name": "sandermuller/laravel-fluent-validation-phpstan",
+    "description": "PHPStan rules for sandermuller/laravel-fluent-validation",
+    "homepage": "https://github.com/sandermuller/laravel-fluent-validation-phpstan",
+    "type": "phpstan-extension",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "SanderMuller\\LaravelFluentValidationPhpstan\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SanderMuller\\LaravelFluentValidationPhpstan\\Tests\\": "tests/"
+        },
+        "classmap": [
+            "tests/Rules/stubs/"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Sander Muller",
+            "email": "github@scode.nl",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.2",
+        "phpstan/phpstan": "^2.1.8"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.21",
+        "nikic/php-parser": "^5.4",
+        "orchestra/testbench": "^9.0||^10.11",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^12.5.22",
+        "rector/rector": "^2.0",
+        "rector/type-perfect": "^2.0",
+        "sandermuller/laravel-fluent-validation": "^1.19.0",
+        "sandermuller/package-boost": "^0.9.0",
+        "symplify/phpstan-extensions": "^12.0.1",
+        "tomasvotruba/cognitive-complexity": "^1.0",
+        "tomasvotruba/type-coverage": "^2.0"
+    },
+    "scripts": {
+        "fix-cs": "vendor/bin/pint",
+        "format": "vendor/bin/pint",
+        "phpstan": "vendor/bin/phpstan analyse --memory-limit=2G",
+        "phpstan-clear-cache": "vendor/bin/phpstan clear-result-cache",
+        "phpstan-simplified": "vendor/bin/phpstan analyse --memory-limit=2G --error-format symplify",
+        "rector": "vendor/bin/rector process",
+        "sync-ai": "vendor/bin/testbench package-boost:sync",
+        "test": "vendor/bin/phpunit",
+        "qa": [
+            "@rector",
+            "@format",
+            "@phpstan-simplified",
+            "@test"
+        ]
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    }
+}

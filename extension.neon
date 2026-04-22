@@ -1,0 +1,36 @@
+parametersSchema:
+    fluentValidationNoUnboundedArrayEach: structure([
+        namespaces: listOf(string())
+        excludeNamespaces: listOf(string())
+        boundingMethods: listOf(string())
+        boundingRuleStringPrefixes: listOf(string())
+    ])
+
+parameters:
+    fluentValidationNoUnboundedArrayEach:
+        namespaces:
+            - App
+        excludeNamespaces: []
+        boundingMethods:
+            - max
+            - between
+            - exactly
+        boundingRuleStringPrefixes:
+            - max
+            - size
+            - between
+
+services:
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Parser\FluentValidationChainVisitor
+        tags:
+            - phpstan.parser.richParserNodeVisitor
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule
+        arguments:
+            namespaces: %fluentValidationNoUnboundedArrayEach.namespaces%
+            excludeNamespaces: %fluentValidationNoUnboundedArrayEach.excludeNamespaces%
+            boundingMethods: %fluentValidationNoUnboundedArrayEach.boundingMethods%
+            boundingRuleStringPrefixes: %fluentValidationNoUnboundedArrayEach.boundingRuleStringPrefixes%
+        tags:
+            - phpstan.rules.rule
