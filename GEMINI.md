@@ -1,34 +1,3 @@
-# Fluent-Validation PHPStan Rules — Agent Context
-
-This is `sandermuller/laravel-fluent-validation-phpstan`, a PHPStan extension package that flags misuse of `sandermuller/laravel-fluent-validation`. **Not** a Laravel application.
-
-## Key Facts
-
-- Rules live in `src/Rules/`, tests in `tests/Rules/`, stubs in `tests/Rules/stubs/`
-- Rules implement PHPStan's `Rule<T>` interface and are registered in `extension.neon`
-- Tests extend `PHPStan\Testing\RuleTestCase`
-- `sandermuller/laravel-fluent-validation` is `require-dev` only — consumers supply their own installed copy
-- PHP ^8.2, PHPStan ^2.1.8, PHPUnit ^12.5
-
-## Commands
-
-```bash
-composer test                # Run tests
-composer fix-cs              # Run Pint formatter
-composer phpstan             # Run PHPStan analysis
-composer rector              # Run Rector transformations
-composer qa                  # Run format, rector, phpstan, test
-```
-
-## Conventions
-
-- `declare(strict_types=1)` in all PHP files
-- `private` visibility by default instead of `protected`
-- Curly braces for all control structures
-- Space after unary not: `if (! $foo)`
-- Omit docblocks when fully type-hinted
-- 100% type coverage, PHPStan level max
-
 <package-boost-guidelines>
 # Package Boost Guidelines
 
