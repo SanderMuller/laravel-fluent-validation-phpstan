@@ -1,8 +1,8 @@
 # Fluent-Validation PHPStan rules
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/sandermuller/laravel-fluent-validation-phpstan.svg?style=flat-square)](https://packagist.org/packages/sandermuller/laravel-fluent-validation-phpstan)
-[![Tests](https://img.shields.io/github/actions/workflow/status/sandermuller/laravel-fluent-validation-phpstan/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/sandermuller/laravel-fluent-validation-phpstan/actions/workflows/tests.yml)
-[![PHPStan](https://img.shields.io/github/actions/workflow/status/sandermuller/laravel-fluent-validation-phpstan/analyzer.yml?branch=main&label=phpstan&style=flat-square)](https://github.com/sandermuller/laravel-fluent-validation-phpstan/actions/workflows/analyzer.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/sandermuller/laravel-fluent-validation-phpstan/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/sandermuller/laravel-fluent-validation-phpstan/actions/workflows/run-tests.yml)
+[![PHPStan](https://img.shields.io/github/actions/workflow/status/sandermuller/laravel-fluent-validation-phpstan/phpstan.yml?branch=main&label=phpstan&style=flat-square)](https://github.com/sandermuller/laravel-fluent-validation-phpstan/actions/workflows/phpstan.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/sandermuller/laravel-fluent-validation-phpstan.svg?style=flat-square)](https://packagist.org/packages/sandermuller/laravel-fluent-validation-phpstan)
 [![License](https://img.shields.io/packagist/l/sandermuller/laravel-fluent-validation-phpstan.svg?style=flat-square)](LICENSE)
 
