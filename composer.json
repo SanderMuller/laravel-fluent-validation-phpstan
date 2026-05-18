@@ -56,7 +56,7 @@
         "phpstan-clear-cache": "vendor/bin/phpstan clear-result-cache",
         "phpstan-simplified": "vendor/bin/phpstan analyse --memory-limit=2G --error-format symplify",
         "rector": "vendor/bin/rector process",
-        "sync-ai": "vendor/bin/testbench package-boost:sync",
+        "sync-ai": "vendor/bin/boost sync",
         "test": "vendor/bin/phpunit",
         "qa": [
             "@rector",
