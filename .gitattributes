@@ -5,6 +5,11 @@
 *.md diff=markdown
 *.php diff=php
 
+benchmark*.php export-ignore
+benchmark*.sh export-ignore
+phpstan-benchmark*.neon export-ignore
+tools/ export-ignore
+
 # >>> package-boost (managed) >>>
 .agents/ export-ignore
 .ai/ export-ignore

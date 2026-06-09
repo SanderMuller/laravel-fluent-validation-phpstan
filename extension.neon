@@ -22,6 +22,15 @@ parameters:
 
 services:
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\FactoryInspector
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\KeysInspector
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\BoundingInspector
+        arguments:
+            boundingMethods: %fluentValidationNoUnboundedArrayEach.boundingMethods%
+            boundingRuleStringPrefixes: %fluentValidationNoUnboundedArrayEach.boundingRuleStringPrefixes%
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Parser\FluentValidationChainVisitor
         tags:
             - phpstan.parser.richParserNodeVisitor
@@ -30,7 +39,5 @@ services:
         arguments:
             namespaces: %fluentValidationNoUnboundedArrayEach.namespaces%
             excludeNamespaces: %fluentValidationNoUnboundedArrayEach.excludeNamespaces%
-            boundingMethods: %fluentValidationNoUnboundedArrayEach.boundingMethods%
-            boundingRuleStringPrefixes: %fluentValidationNoUnboundedArrayEach.boundingRuleStringPrefixes%
         tags:
             - phpstan.rules.rule

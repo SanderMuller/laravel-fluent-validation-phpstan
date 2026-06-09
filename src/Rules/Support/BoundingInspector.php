@@ -10,10 +10,18 @@ use SanderMuller\LaravelFluentValidationPhpstan\Parser\FluentValidationChainVisi
 
 final readonly class BoundingInspector
 {
-    /** @var list<string> */
+    /**
+     * Hash-set form of the bounding methods list for O(1) isset lookup.
+     *
+     * @var array<string, true>
+     */
     private array $boundingMethods;
 
-    /** @var list<string> */
+    /**
+     * Hash-set form of the bounding rule-string prefixes for O(1) isset lookup.
+     *
+     * @var array<string, true>
+     */
     private array $boundingRuleStringPrefixes;
 
     /**
@@ -24,8 +32,8 @@ final readonly class BoundingInspector
         array $boundingMethods,
         array $boundingRuleStringPrefixes,
     ) {
-        $this->boundingMethods = $this->normalize($boundingMethods);
-        $this->boundingRuleStringPrefixes = $this->normalize($boundingRuleStringPrefixes);
+        $this->boundingMethods = $this->toSet($boundingMethods);
+        $this->boundingRuleStringPrefixes = $this->toSet($boundingRuleStringPrefixes);
     }
 
     public function chainHasBoundingMethod(MethodCall $node): bool
@@ -34,7 +42,7 @@ final readonly class BoundingInspector
         $chain = $node->getAttribute(FluentValidationChainVisitor::CHAIN_ATTR, []);
 
         foreach ($chain as $method) {
-            if ($method !== null && in_array($method, $this->boundingMethods, true)) {
+            if ($method !== null && isset($this->boundingMethods[$method])) {
                 return true;
             }
         }
@@ -58,11 +66,12 @@ final readonly class BoundingInspector
 
     /**
      * @param  list<string>  $values
-     * @return list<string>
+     * @return array<string, true>
      */
-    private function normalize(array $values): array
+    private function toSet(array $values): array
     {
-        return array_values(array_map(strtolower(...), $values));
+        /** @var array<string, true> */
+        return array_fill_keys(array_map(strtolower(...), $values), true);
     }
 
     private function ruleArgBounds(Expr $expr, Scope $scope): bool
@@ -97,6 +106,6 @@ final readonly class BoundingInspector
         $needle = strstr($raw, ':', true);
         $prefix = strtolower($needle === false ? $raw : $needle);
 
-        return in_array($prefix, $this->boundingRuleStringPrefixes, true);
+        return isset($this->boundingRuleStringPrefixes[$prefix]);
     }
 }

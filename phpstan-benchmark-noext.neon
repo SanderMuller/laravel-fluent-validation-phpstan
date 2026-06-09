@@ -1,0 +1,7 @@
+parameters:
+    tmpDir: .cache/phpstan-benchmark-noext
+
+    paths:
+        - tests/Rules/stubs/BenchmarkRealistic.php
+
+    level: 5

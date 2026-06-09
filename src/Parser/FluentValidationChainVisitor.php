@@ -4,7 +4,6 @@ namespace SanderMuller\LaravelFluentValidationPhpstan\Parser;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
-use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Identifier;
 use PhpParser\NodeVisitorAbstract;
@@ -17,123 +16,74 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
 
     public const RULE_ARGS_ATTR = 'fluentValidation.ruleArgs';
 
-    /** @var list<Node> */
-    private array $stack = [];
-
     /**
-     * PHPStan reuses the visitor service across files. `beforeTraverse` runs at the
-     * start of every file's traversal — reset the ancestor stack defensively so a
-     * half-finished traversal (e.g. interrupted by a parse error) can't leak state
-     * into the next file.
+     * Set on every non-outermost MethodCall in a chain so that `enterNode` can
+     * skip them without maintaining a parent-tracking stack.
      *
-     * @param  array<Node>  $nodes
+     * A MethodCall is "inner" when it is the `.var` child of another MethodCall —
+     * i.e. it is never the outermost call in its chain. This attribute is stamped
+     * during `annotateChain`, which is always called before PHP-Parser descends
+     * into the inner nodes (parent-before-children traversal order).
      */
-    public function beforeTraverse(array $nodes): ?array
-    {
-        $this->stack = [];
-
-        return null;
-    }
+    private const INNER_ATTR = 'fluentValidation.inner';
 
     public function enterNode(Node $node): ?Node
     {
-        if ($node instanceof MethodCall && $this->isOutermostChainCall($node)) {
+        if (! $node instanceof MethodCall) {
+            return null;
+        }
+
+        if ($node->getAttribute(self::INNER_ATTR) !== true) {
             $this->annotateChain($node);
         }
 
-        $this->stack[] = $node;
-
         return null;
-    }
-
-    public function leaveNode(Node $node): ?Node
-    {
-        array_pop($this->stack);
-
-        return null;
-    }
-
-    private function isOutermostChainCall(MethodCall $node): bool
-    {
-        $parent = $this->stack[count($this->stack) - 1] ?? null;
-
-        return ! $parent instanceof MethodCall || $parent->var !== $node;
     }
 
     private function annotateChain(MethodCall $outermost): void
     {
-        $hops = $this->collectHops($outermost);
-        $root = $this->resolveRoot($outermost);
-        $chainMethods = $this->collectMethodNames($hops);
-        $ruleArgs = $this->collectRuleArgs($hops);
-
-        foreach ($hops as $hop) {
-            if ($this->hopMethodName($hop) === 'each') {
-                $hop->setAttribute(self::CHAIN_ATTR, $chainMethods);
-                $hop->setAttribute(self::CHAIN_ROOT_ATTR, $root);
-                $hop->setAttribute(self::RULE_ARGS_ATTR, $ruleArgs);
-            }
-        }
-    }
-
-    /**
-     * @param  list<MethodCall>  $hops
-     * @return list<string|null>
-     */
-    private function collectMethodNames(array $hops): array
-    {
-        $names = [];
-        foreach ($hops as $hop) {
-            $names[] = $this->hopMethodName($hop);
-        }
-
-        return $names;
-    }
-
-    /**
-     * @param  list<MethodCall>  $hops
-     * @return list<Expr>
-     */
-    private function collectRuleArgs(array $hops): array
-    {
-        $args = [];
-        foreach ($hops as $hop) {
-            if ($this->hopMethodName($hop) !== 'rule') {
-                continue;
-            }
-
-            $first = $hop->args[0] ?? null;
-            if ($first instanceof Arg) {
-                $args[] = $first->value;
-            }
-        }
-
-        return $args;
-    }
-
-    /** @return list<MethodCall> ordered innermost-first (closest to root). */
-    private function collectHops(MethodCall $outermost): array
-    {
-        $hops = [];
+        // Single traversal: collect chain metadata while checking for 'each'.
+        // Mark inner hops and gather rule args inline to avoid extra passes.
+        $chainMethods = [];
+        $eachHops = [];
+        $ruleArgs = [];
         $current = $outermost;
 
         while ($current instanceof MethodCall) {
-            $hops[] = $current;
-            $current = $current->var;
+            $name = $this->hopMethodName($current);
+            $chainMethods[] = $name;
+
+            if ($name === 'each') {
+                $eachHops[] = $current;
+            } elseif ($name === 'rule') {
+                $first = $current->args[0] ?? null;
+                if ($first instanceof Arg) {
+                    $ruleArgs[] = $first->value;
+                }
+            }
+
+            $next = $current->var;
+            if ($next instanceof MethodCall) {
+                // Mark the inner hop so enterNode skips it — this replaces the
+                // parent-tracking stack from the previous approach.
+                $next->setAttribute(self::INNER_ATTR, true);
+            }
+
+            $current = $next;
         }
 
-        return array_reverse($hops);
-    }
-
-    private function resolveRoot(MethodCall $outermost): Node
-    {
-        $current = $outermost;
-
-        while ($current instanceof MethodCall) {
-            $current = $current->var;
+        // Early exit: no 'each' call in this chain — nothing to annotate.
+        if ($eachHops === []) {
+            return;
         }
 
-        return $current;
+        $root = $current;
+
+        foreach ($eachHops as $hop) {
+            $hop->setAttribute(self::CHAIN_ATTR, $chainMethods);
+            $hop->setAttribute(self::CHAIN_ROOT_ATTR, $root);
+            $hop->setAttribute(self::RULE_ARGS_ATTR, $ruleArgs);
+        }
     }
 
     private function hopMethodName(MethodCall $hop): ?string
@@ -142,6 +92,6 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
             return null;
         }
 
-        return strtolower($hop->name->toString());
+        return $hop->name->toLowerString();
     }
 }

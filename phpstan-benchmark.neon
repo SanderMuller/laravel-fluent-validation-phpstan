@@ -1,0 +1,24 @@
+includes:
+    - extension.neon
+
+parameters:
+    tmpDir: .cache/phpstan-benchmark
+
+    paths:
+        - tests/Rules/stubs/BenchmarkRealistic.php
+
+    level: 5
+
+    # Use App\Benchmark namespace so the rule fires on each() calls
+    fluentValidationNoUnboundedArrayEach:
+        namespaces:
+            - App
+        excludeNamespaces: []
+        boundingMethods:
+            - max
+            - between
+            - exactly
+        boundingRuleStringPrefixes:
+            - max
+            - size
+            - between

@@ -1,35 +1,176 @@
-# Fluent-Validation PHPStan Rules — Agent Context
+# Fluent-Validation PHPStan Rules
 
-This is `sandermuller/laravel-fluent-validation-phpstan`, a PHPStan extension package that flags misuse of `sandermuller/laravel-fluent-validation`. **Not** a Laravel application.
+This is `sandermuller/laravel-fluent-validation-phpstan`, a PHPStan extension package that flags misuse of [`sandermuller/laravel-fluent-validation`](https://github.com/sandermuller/laravel-fluent-validation) in consumer projects. This is **not** a Laravel application — it is a standalone Composer package.
 
-## Key Facts
+## Project Structure
 
-- Rules live in `src/Rules/`, tests in `tests/Rules/`, stubs in `tests/Rules/stubs/`
-- Rules implement PHPStan's `Rule<T>` interface and are registered in `extension.neon`
-- Tests extend `PHPStan\Testing\RuleTestCase`
-- `sandermuller/laravel-fluent-validation` is `require-dev` only — consumers supply their own installed copy
-- PHP ^8.2, PHPStan ^2.1.8, PHPUnit ^12.5
-
-## Commands
-
-```bash
-composer test                # Run tests
-composer fix-cs              # Run Pint formatter
-composer phpstan             # Run PHPStan analysis
-composer rector              # Run Rector transformations
-composer qa                  # Run format, rector, phpstan, test
+```
+src/
+├── Parser/            # Custom PHPStan node visitors (chain-metadata annotations)
+├── Rules/             # PHPStan rules (one class per rule)
+└── Traits/            # Shared traits (ChecksNamespace)
+tests/
+├── Rules/             # Tests for each rule (PHPStan RuleTestCase)
+│   └── stubs/         # Test fixture PHP files referencing FluentRule
+extension.neon         # PHPStan extension registration
+phpstan.neon.dist      # PHPStan analysis configuration
+pint.json              # Laravel Pint code style config
 ```
 
-## Conventions
+Companion packages:
 
-- `declare(strict_types=1)` in all PHP files
-- `private` visibility by default instead of `protected`
-- Curly braces for all control structures
-- Space after unary not: `if (! $foo)`
-- Omit docblocks when fully type-hinted
-- 100% type coverage, PHPStan level max
+- [`sandermuller/laravel-fluent-validation`](https://github.com/sandermuller/laravel-fluent-validation) — the runtime API these rules target.
+- [`sandermuller/fluent-validation-rector`](https://github.com/sandermuller/fluent-validation-rector) — auto-fix counterpart for migration tasks.
 
-<package-boost-guidelines>
+## Dependencies
+
+- **PHP**: ^8.3
+- **PHPStan**: ^2.1.8
+- `sandermuller/laravel-fluent-validation`: `^1.19` (dev-only; consumers supply their own installed version)
+
+## Development Commands
+
+```bash
+composer test                # Run PHPUnit tests
+composer fix-cs              # Run Laravel Pint formatter (alias: composer format)
+composer phpstan             # Run PHPStan analysis
+composer phpstan-clear-cache # Clear PHPStan cache
+composer rector              # Run Rector transformations
+composer qa                  # Run format, rector, phpstan, test
+composer sync-ai             # Re-sync AI agent skills and guidelines
+```
+
+## Repository
+
+- **Owner**: `sandermuller`
+- **Repository**: `laravel-fluent-validation-phpstan`
+- **Default branch**: `main`
+
+---
+
+## PHP Conventions
+
+- Always use `declare(strict_types=1);`
+- Use `private` visibility by default for methods, properties, and constants
+- Always use curly braces for control structures, even for single-line bodies
+- Use PHP 8 constructor property promotion
+- Always use explicit return type declarations
+- Use appropriate PHP type hints for all method parameters
+- Add a space after the unary not operator: `if (! $foo)`
+- Omit docblocks when methods are fully type-hinted
+- Prefer string interpolation over `sprintf` and concatenation
+- Never use `empty()` — use explicit checks instead
+- Prefer PHPDoc blocks over inline comments
+
+---
+
+## Testing
+
+- Tests use PHPStan's `RuleTestCase` base class
+- Each rule has a corresponding test in `tests/Rules/`
+- Test stubs (fixture PHP/Blade files) live alongside the tests in `stubs/` subdirectories
+- Run all tests: `composer test`
+- Run specific test: `vendor/bin/phpunit --filter=TestClassName`
+- Every change must have test coverage — write or update tests, then run them
+
+## Creating a New Rule
+
+1. Create the rule class in `src/Rules/` implementing PHPStan's `Rule<T>` interface
+2. Register it in `extension.neon` — under `rules:` if the rule has no constructor dependencies, or under `services:` with the `phpstan.rules.rule` tag when it needs DI (e.g. `ReflectionProvider`)
+3. Create test stub files in `tests/Rules/stubs/` (or a sibling `stubs/` directory next to the test)
+4. Create a test extending `PHPStan\Testing\RuleTestCase` in `tests/Rules/`
+5. Use the `ChecksNamespace` trait if the rule needs to filter by namespace prefix
+6. Run `composer fix-cs` and `composer phpstan` before finalizing
+
+## Quality Standards
+
+- PHPStan level: `max`
+- Type coverage: 100% (return, param, property, declare)
+- Cognitive complexity: class max 12, function max 10
+- Code style: Laravel Pint with `laravel` preset
+
+---
+
+## PHPStan Extension Notes
+
+**Visitor timing:** `richParserNodeVisitor` runs before PHPStan's name-resolution
+pass. At visitor time, `Name` nodes still hold the short/aliased form (e.g.
+`FluentRule`), not the FQCN (`SanderMuller\FluentValidation\FluentRule`).
+Any FQCN string comparison inside the visitor silently returns false.
+Move class-identity checks to the rule's `processNode`, which runs at analysis
+time after `NameResolver` has converted `Name` → `Name\FullyQualified`.
+
+---
+
+## Fixing PHPStan Errors
+
+When fixing a PHPStan error, first decide whether it represents a runtime bug a test could catch — and if so, write that test before the fix.
+
+### Process
+
+1. **Assess testability** — does the error represent a runtime bug a test could reproduce (a wrong argument type, a missing method, an incorrect return type used downstream)?
+2. **Write the test first** — if a test can catch it, write a failing test that reproduces the error before applying the fix.
+3. **Fix the code** — apply the fix so both the PHPStan error and the new test pass.
+4. **Verify both** — confirm PHPStan reports no error and the test passes.
+
+### When to Write a Test
+
+Write a test when the PHPStan error indicates a fault that would surface at runtime:
+
+- A method call on a value of the wrong type
+- Missing or incorrect arguments to a function or method
+- A return-type mismatch that would break callers
+- Accessing a property or method that does not exist
+- Any type error that would manifest as a runtime exception
+
+### When to Skip the Test
+
+Skip the test when the error is purely static and cannot cause a runtime failure:
+
+- Missing return-type declarations
+- PHPDoc mismatches with no runtime impact
+- Unused variables or imports
+- Generic-type parameter issues
+
+---
+
+## Verification Before Completion
+
+Before claiming any work is complete or successful, run the verification command fresh and confirm the output. Evidence before claims, always.
+
+### Required Before Any Completion Claim
+
+1. **Run** the relevant command (in the current message, not from memory)
+2. **Read** the full output
+3. **Confirm** it supports the claim
+4. **Then** state the result with evidence
+
+| Claim            | Required verification                                            |
+|------------------|------------------------------------------------------------------|
+| Tests pass       | The project's test command, output showing 0 failures            |
+| Code style clean | The project's formatter/style checker, output showing no changes |
+| Linting clean    | The project's linter, output showing 0 errors                    |
+| Types check      | The project's type checker, output showing 0 errors              |
+| Bug fixed        | The previously failing test now passes                           |
+| Feature complete | All related tests pass                                           |
+
+Use the project's own commands — check its `composer.json` / `package.json` scripts, CI config, or sibling docs to find them. Do not assume a specific tool.
+
+### Delegating the checks
+
+Where the project has dedicated quality-check skills synced, delegate to them — `backend-quality` for backend files, `frontend-quality` for frontend files, both when a change spans both. Otherwise, run the project's own equivalent commands directly.
+
+### Never Use Without Evidence
+
+- "should work now"
+- "that should fix it"
+- "looks correct"
+- "I'm confident this works"
+
+These phrases indicate missing verification. Run the command first, then report what actually happened.
+
+---
+
 # Package Boost Guidelines
 
 These guidelines replace Laravel Boost's default foundation for
@@ -101,6 +242,16 @@ behaviour is pinned down.
 - Do not add dependencies without approval; every new `require` is a
   constraint downstream consumers inherit.
 
+## Extending boost-core
+
+If your package authors a custom `FileEmitter` (to write a file like
+`.mcp.json` into the host during `boost sync`), declare the
+`boost-extension` tag in your `boost.php` `withTags([...])`. That pulls
+the `writing-file-emitter` skill — gated off by default so consumers
+who do not extend the engine don't carry it, which is why an
+emitter-authoring package has to opt in explicitly. The same tag pulls
+`skill-authoring` for writing boost-family skills.
+
 ## Documentation Files
 
 Only create or edit documentation (README, CHANGELOG, docs/) when
@@ -111,113 +262,40 @@ explicitly requested or when a behaviour change requires it.
 Be concise. Focus on what changed and why. Skip restating what the
 diff already shows.
 
-## If your package targets Laravel
-
-The rest of this document is Laravel-specific. Skip it if the package
-is framework-agnostic — `composer.json` should make that obvious (no
-`require.illuminate/*`, no `require.laravel/framework`).
-
-### Laravel context
-
-A Testbench-provided Laravel application is spun up only at test
-time. Base test case is `Orchestra\Testbench\TestCase`.
-`composer.json`'s `require.illuminate/*` (or
-`require.laravel/framework`) defines the supported Laravel range —
-check it before using version-specific framework APIs.
-
-### Use `vendor/bin/testbench`, not `php artisan`
-
-Running artisan commands directly against the package fails — there is
-no host application. Use Testbench's binary:
-
-| Instead of | Use |
-|---|---|
-| `php artisan test` | `vendor/bin/pest` or `vendor/bin/phpunit` |
-| `php artisan tinker` | `vendor/bin/testbench tinker` |
-| `php artisan make:*` | Create files manually under `src/` |
-| `php artisan vendor:publish` | `vendor/bin/testbench vendor:publish` |
-
-#### Commands that require `laravel/boost`
-
-These only apply when the package has `laravel/boost` as a dev
-dependency. Skip if Boost isn't installed — `boost sync`
-prints a warning and moves on.
-
-| Instead of | Use |
-|---|---|
-| `php artisan boost:install` | `vendor/bin/testbench boost:install` |
-| `php artisan boost:mcp` | `vendor/bin/testbench boost:mcp` |
-
-Register the package's service provider in `testbench.yaml` under
-`providers:` so Testbench boots it. Published files land in
-`workbench/` by default, not `config/` or `resources/` of a host app.
-
-### Cross-Version Compatibility
-
-Supporting multiple Laravel / PHP majors is routine for Laravel
-packages. Activate `cross-version-laravel-support` **before** writing
-the code; activate `ci-matrix-troubleshooting` **after** a matrix cell
-has failed.
-
 ---
 
-## Release Notes vs CHANGELOG
+# Release Automation
 
-`CHANGELOG.md` is **auto-populated by CI** on release. Do not hand-edit it.
+Conventions the package-boost family shares for release flow. The
+procedural detail lives in the `pre-release` and `release-notes`
+skills — loaded on-demand, not pinned here.
 
-When you need to document a user-facing change for a release, write it to `RELEASE_NOTES_<version>.md` at the repo root (already gitignored via the `RELEASE_NOTES*.md` pattern). The CI release job picks it up and promotes it into `CHANGELOG.md` as part of the tag flow.
+## CHANGELOG is CI-managed
 
-If you find yourself editing `CHANGELOG.md` directly, stop — it will be overwritten.
+`.github/workflows/update-changelog.yml` prepends the release body to
+`CHANGELOG.md` on `release: released` and commits to the release's
+target branch (typically `main`). Don't hand-edit `CHANGELOG.md` as
+part of a release. Post-release typo fixes are committed directly.
 
-## Verification Before Completion
+## Release notes live in `internal/release-notes-<version>.md`
 
-Before claiming any work is complete or successful, run the verification command fresh and confirm the output. Evidence before claims, always.
+`internal/` is gitignored — drafts stay local. The notes file becomes
+the release body. The first line pins the green commit so the pre-tag
+gate can fail closed on drift:
 
-### Required Before Any Completion Claim
-
-1. **Run** the relevant command (in the current message, not from memory)
-2. **Read** the full output
-3. **Confirm** it supports the claim
-4. **Then** state the result with evidence
-
-### During Development (after each change)
-
-| Claim            | Required verification                              |
-|------------------|----------------------------------------------------|
-| Code style clean | `vendor/bin/pint --dirty --format agent` output    |
-| Tests pass       | Related tests pass via `--filter` or specific file |
-| Bug fixed        | Previously failing test now passes                 |
-
-### At Completion Only (feature/phase done, before PR)
-
-These are slow checks — only run them once at the very end:
-
-| Claim             | Required verification                                           |
-|-------------------|-----------------------------------------------------------------|
-| Rector ran clean  | `vendor/bin/rector process` showing 0 changes                   |
-| PHPStan clean     | `vendor/bin/phpstan analyse --memory-limit=2G` showing 0 errors |
-| Full suite passes | `vendor/bin/pest` output showing 0 failures                     |
-| Feature complete  | All above checks pass                                           |
-
-### Always Capture Command Output
-
-Append `|| true` to all verification commands (tests, linting, type checks) so the output is always captured, even on failure. Without it, a non-zero exit code can hide the output, forcing an expensive second run just to read the errors.
-
-```bash
-# CORRECT — output always visible
-vendor/bin/pest --filter=testName || true
-vendor/bin/pint --dirty --format agent || true
-
-# WRONG — output lost on failure, wastes time re-running
-vendor/bin/pest --filter=testName
+```
+<!-- verified-sha: <full sha> -->
 ```
 
-### Never Use Without Evidence
+## Tag and title
 
-- "should work now"
-- "that should fix it"
-- "looks correct"
-- "I'm confident this works"
+- Tag: bare version (`0.7.0`) — Composer and Packagist read the tag.
+- Release title: `v`-prefixed (`v0.7.0`) — cosmetic.
+- Notes file: bare (`internal/release-notes-0.7.0.md`).
 
-These phrases indicate missing verification. Run the command first, then report what actually happened.
-</package-boost-guidelines>
+## Agent handoff
+
+Agents stop at the ready-to-tag handoff. The user runs the pre-tag
+gate and publishes the release (GitHub UI, `gh`, or otherwise). See
+the `pre-release` skill for the full procedure and the no-release-create
+rule.

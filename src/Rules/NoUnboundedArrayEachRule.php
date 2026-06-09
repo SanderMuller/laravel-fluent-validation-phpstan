@@ -8,8 +8,6 @@ use PhpParser\Node\Identifier;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
-use PHPStan\Type\ObjectType;
-use SanderMuller\FluentValidation\Rules\ArrayRule;
 use SanderMuller\LaravelFluentValidationPhpstan\Parser\FluentValidationChainVisitor;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\BoundingInspector;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\FactoryInspector;
@@ -26,37 +24,24 @@ final readonly class NoUnboundedArrayEachRule implements Rule
     /** @var string */
     private const IDENTIFIER = 'sandermuller.fluentValidation.noUnboundedArrayEach';
 
-    /** @var class-string<ArrayRule> */
-    private const ARRAY_RULE_CLASS = ArrayRule::class;
-
-    private FactoryInspector $factoryInspector;
-
-    private KeysInspector $keysInspector;
-
-    private BoundingInspector $boundingInspector;
-
     /**
      * @param  list<string>  $namespaces
      * @param  list<string>  $excludeNamespaces
-     * @param  list<string>  $boundingMethods
-     * @param  list<string>  $boundingRuleStringPrefixes
      */
     public function __construct(
         private array $namespaces,
         private array $excludeNamespaces,
-        array $boundingMethods,
-        array $boundingRuleStringPrefixes,
-    ) {
-        $this->factoryInspector = new FactoryInspector();
-        $this->keysInspector = new KeysInspector($this->factoryInspector);
-        $this->boundingInspector = new BoundingInspector($boundingMethods, $boundingRuleStringPrefixes);
-    }
+        private FactoryInspector $factoryInspector,
+        private KeysInspector $keysInspector,
+        private BoundingInspector $boundingInspector,
+    ) {}
 
     public function getNodeType(): string
     {
         return MethodCall::class;
     }
 
+    /** @param MethodCall $node */
     public function processNode(Node $node, Scope $scope): array
     {
         if (! $this->isEachCall($node)) {
@@ -67,10 +52,10 @@ final readonly class NoUnboundedArrayEachRule implements Rule
             return [];
         }
 
-        if (! $this->receiverIsArrayRule($node, $scope)) {
-            return [];
-        }
-
+        // Cheap factory check before any PHPStan type inference. The visitor stamps
+        // CHAIN_ROOT_ATTR on every each() hop; we confirm the root is a recognized
+        // factory here (at analysis time, after name resolution) so that Collection::each()
+        // and similar non-FluentRule calls are rejected without triggering getType().
         $root = $node->getAttribute(FluentValidationChainVisitor::CHAIN_ROOT_ATTR);
         if (! $root instanceof Node || ! $this->factoryInspector->isRecognizedFactory($root)) {
             return [];
@@ -101,23 +86,15 @@ final readonly class NoUnboundedArrayEachRule implements Rule
         ];
     }
 
-    private function isEachCall(Node $node): bool
+    private function isEachCall(MethodCall $node): bool
     {
-        return $node instanceof MethodCall
-            && $node->name instanceof Identifier
-            && strtolower($node->name->toString()) === 'each';
+        return $node->name instanceof Identifier
+            && $node->name->toLowerString() === 'each';
     }
 
     private function inConfiguredNamespace(Scope $scope): bool
     {
         return $this->namespaceStartsWithAny($scope, $this->namespaces)
             && ! $this->namespaceStartsWithAny($scope, $this->excludeNamespaces);
-    }
-
-    private function receiverIsArrayRule(MethodCall $node, Scope $scope): bool
-    {
-        return (new ObjectType(self::ARRAY_RULE_CLASS))
-            ->isSuperTypeOf($scope->getType($node->var))
-            ->yes();
     }
 }

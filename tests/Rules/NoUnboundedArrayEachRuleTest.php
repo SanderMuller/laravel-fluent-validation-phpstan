@@ -4,6 +4,9 @@ namespace SanderMuller\LaravelFluentValidationPhpstan\Tests\Rules;
 
 use PHPStan\Testing\RuleTestCase;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule;
+use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\BoundingInspector;
+use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\FactoryInspector;
+use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\KeysInspector;
 
 /**
  * @extends RuleTestCase<NoUnboundedArrayEachRule>
@@ -17,11 +20,23 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
 
     protected function getRule(): NoUnboundedArrayEachRule
     {
-        return $this->ruleOverride ?? new NoUnboundedArrayEachRule(
+        return $this->ruleOverride ?? $this->makeRule(['max', 'between', 'exactly'], ['max', 'size', 'between']);
+    }
+
+    /**
+     * @param  list<string>  $boundingMethods
+     * @param  list<string>  $boundingRuleStringPrefixes
+     */
+    private function makeRule(array $boundingMethods, array $boundingRuleStringPrefixes): NoUnboundedArrayEachRule
+    {
+        $factoryInspector = new FactoryInspector();
+
+        return new NoUnboundedArrayEachRule(
             namespaces: ['App'],
             excludeNamespaces: [],
-            boundingMethods: ['max', 'between', 'exactly'],
-            boundingRuleStringPrefixes: ['max', 'size', 'between'],
+            factoryInspector: $factoryInspector,
+            keysInspector: new KeysInspector($factoryInspector),
+            boundingInspector: new BoundingInspector($boundingMethods, $boundingRuleStringPrefixes),
         );
     }
 
@@ -117,12 +132,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
 
     public function testExtendedBoundingMethodsSilenceCustomBounder(): void
     {
-        $this->ruleOverride = new NoUnboundedArrayEachRule(
-            namespaces: ['App'],
-            excludeNamespaces: [],
-            boundingMethods: ['max', 'between', 'exactly', 'contains'],
-            boundingRuleStringPrefixes: ['max', 'size', 'between'],
-        );
+        $this->ruleOverride = $this->makeRule(['max', 'between', 'exactly', 'contains'], ['max', 'size', 'between']);
 
         $this->analyse([__DIR__ . '/stubs/CustomBoundingMethod.php'], []);
     }
@@ -136,12 +146,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
 
     public function testExtendedRuleStringPrefixesSilenceCustomPrefix(): void
     {
-        $this->ruleOverride = new NoUnboundedArrayEachRule(
-            namespaces: ['App'],
-            excludeNamespaces: [],
-            boundingMethods: ['max', 'between', 'exactly'],
-            boundingRuleStringPrefixes: ['max', 'size', 'between', 'in'],
-        );
+        $this->ruleOverride = $this->makeRule(['max', 'between', 'exactly'], ['max', 'size', 'between', 'in']);
 
         $this->analyse([__DIR__ . '/stubs/CustomBoundingRuleString.php'], []);
     }

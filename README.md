@@ -10,7 +10,7 @@ PHPStan rules that flag misuse of [`sandermuller/laravel-fluent-validation`](htt
 
 ## Requirements
 
-- PHP 8.2 or higher
+- PHP 8.3 or higher
 - PHPStan 2.1 or higher
 - `sandermuller/laravel-fluent-validation` (any version that ships `FluentRule::array()`, `FluentRule::list()`, and `ArrayRule::each/max/between/exactly/rule` — `^1.19` and up)
 
