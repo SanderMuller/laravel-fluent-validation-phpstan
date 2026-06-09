@@ -2,6 +2,24 @@
 
 All notable changes to `laravel-fluent-validation-phpstan` will be documented in this file.
 
+## 0.2.0 - 2026-06-09
+
+<!-- verified-sha: dc2b3941fa0955d80bed40926a4790d220cff0c5 -->
+### 0.2.0
+
+#### Fixed
+
+- README incorrectly stated PHP 8.2 as the minimum requirement; corrected to PHP 8.3 to match `composer.json`.
+
+#### Internal
+
+- **Chain analysis performance.** `NoUnboundedArrayEachRule` no longer calls `$scope->getType()` on the receiver of every `each()` hop in the file. The rule now performs an AST-only factory check (literal `FluentRule::array()` / `FluentRule::list()` / `new ArrayRule(...)` calls) as the first fast-path, which eliminates the most expensive per-call work in large files.
+- **Single-pass visitor.** `FluentValidationChainVisitor` replaced its stack-based parent-tracking with a single annotation pass (`INNER_ATTR`). Inner chain nodes are stamped during traversal so `enterNode` can skip them without maintaining a mutable stack through `beforeTraverse` / `leaveNode`.
+- **Hash-set lookups.** `BoundingInspector` and `FactoryInspector` store method/factory name sets as `array<string, true>` and use `isset` instead of `in_array`, making per-call name membership checks O(1).
+- **DI-composed inspectors.** `FactoryInspector`, `KeysInspector`, and `BoundingInspector` are now registered as explicit services in `extension.neon` and injected into `NoUnboundedArrayEachRule` via Nette DI. No consumer configuration changes required.
+
+**Full Changelog**: https://github.com/SanderMuller/laravel-fluent-validation-phpstan/compare/0.1.0...0.2.0
+
 ## 0.1.0 - 2026-04-22
 
 First public release of `sandermuller/laravel-fluent-validation-phpstan`, a PHPStan extension that flags misuse of [`sandermuller/laravel-fluent-validation`](https://github.com/sandermuller/laravel-fluent-validation) in consumer projects.
@@ -31,15 +49,15 @@ CI matrix: 17 cells (`PHP {8.2, 8.3, 8.4} × Laravel {^11.0, ^12.0, ^13.0} × st
 
 ```bash
 composer require --dev sandermuller/laravel-fluent-validation-phpstan
-```
 
+```
 With [`phpstan/extension-installer`](https://github.com/phpstan/extension-installer) the rule auto-registers. Otherwise include the extension manually:
 
 ```neon
 includes:
     - vendor/sandermuller/laravel-fluent-validation-phpstan/extension.neon
-```
 
+```
 ## What's Changed
 
 * Bump peter-evans/create-pull-request from 7.0.8 to 8.1.1 by @dependabot[bot] in https://github.com/SanderMuller/laravel-fluent-validation-phpstan/pull/1
