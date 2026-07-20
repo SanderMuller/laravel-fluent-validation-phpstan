@@ -2,6 +2,7 @@
 
 namespace SanderMuller\LaravelFluentValidationPhpstan\Tests\Rules;
 
+use Override;
 use PHPStan\Testing\RuleTestCase;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\BoundingInspector;
@@ -40,6 +41,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
         );
     }
 
+    #[Override]
     public static function getAdditionalConfigFiles(): array
     {
         return [
