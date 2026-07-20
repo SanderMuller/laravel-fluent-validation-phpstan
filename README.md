@@ -127,6 +127,27 @@ PHPStan's default `reportUnmatchedIgnoredErrors: true` will turn stale identifie
 - Per-item DB-heavy rules specifically (`->exists()`, closures). The MVP flags any unbounded `each(...)` regardless of what's inside, to avoid false negatives. Suppress via identifier ignore for cheap-per-item cases.
 - Autofix. There is no unambiguous "correct" bound; the rule stays advisory.
 
+## Type extensions
+
+Beyond the rules, the package teaches PHPStan to infer types the runtime API can't declare. No configuration; registering `extension.neon` is enough.
+
+### `rules()` on classes using `HasFluentRules`
+
+`HasFluentRules::rules()` is declared `array<string, mixed>|RuleSet`, because the trait passes `schema()`'s value straight through and a `schema()` may legitimately return either. That union is honest at runtime but too wide at each call site, so code that was clean before migrating `rules()` to `schema()` starts failing:
+
+```php
+final class SessionStartedRequest extends BasePlayerRequest
+{
+    public function rules(): RuleSet
+    {
+        // Cannot call method merge() on array<string, mixed>|RuleSet.
+        return parent::rules()->merge(['position' => FluentRule::integer()->required()]);
+    }
+}
+```
+
+The extension resolves `rules()` to the concrete class's `schema()` return type — `RuleSet` above, so `merge()` resolves. It applies to instance calls and to `parent::`/`self::`/`static::` calls, and mirrors the trait's own gate: a `schema()` whose first parameter isn't a `FluentSchema` is an unrelated method and is left alone, as is a class that declares its own `rules()`.
+
 ## Testing
 
 ```bash
