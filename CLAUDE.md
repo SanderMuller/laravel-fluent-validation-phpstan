@@ -104,11 +104,18 @@ leaves the declared type in place, which is often what a naive assertion expects
 anyway. Temporarily break the extension and confirm the fixture fails; a
 type-inference test that cannot fail is worse than none.
 
-**Any test touching PHPStan type APIs must extend `PHPStanTestCase`.** The
-reflection container is only initialized for its subclasses. A plain
-`PHPUnit\Framework\TestCase` appears to work when the suite happens to run a
-`PHPStanTestCase` first and fails with `MissingStaticAccessorInstanceException`
-in isolation.
+**Constructing a PHPStan `Type` needs the reflection container.** Extend
+`PHPStanTestCase` and call `self::getContainer()` in the test body before
+building any `ObjectType`, or it throws
+`MissingStaticAccessorInstanceException`. Build types in the test, never in a
+data provider — providers run before any container exists. Both mistakes hide
+themselves: the suite passes whenever another test boots the container first,
+and fails only when the file runs alone.
+
+**Do not register `PHPStanPHPUnitExtension` in `phpunit.xml`.** It papers over
+the container problem, but the class does not exist in the lowest PHPStan the
+package supports, so `prefer-lowest` CI fails on the unbootstrappable
+extension.
 
 ## Quality Standards
 
