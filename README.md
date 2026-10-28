@@ -148,6 +148,34 @@ final class SessionStartedRequest extends BasePlayerRequest
 
 The extension resolves `rules()` to the concrete class's `schema()` return type — `RuleSet` above, so `merge()` resolves. It applies to instance calls and to `parent::`/`self::`/`static::` calls, and mirrors the trait's own gate: a `schema()` whose first parameter isn't a `FluentSchema` is an unrelated method and is left alone, as is a class that declares its own `rules()`.
 
+### `RuleSet::from([...])` validated shape
+
+With a `laravel-fluent-validation` release whose `RuleSet` is generic, `RuleSet::from()` called with a literal rules array resolves to `RuleSet<array{...}>`, so `validate()` and `check()->validated()` return the shape the rules enforce at runtime:
+
+```php
+$data = RuleSet::from([
+    'id' => FluentRule::integer()->required(),
+    'title' => FluentRule::string()->nullable(),
+])->validate($payload);
+
+// array{id: float|int|numeric-string, title?: string|null}
+```
+
+`validated()` never casts, so each type is the set of raw inputs the chain lets through:
+
+| Base | With `required()` | Without `required()` |
+| --- | --- | --- |
+| `string()` | `non-empty-string` | `string` |
+| `integer()`, `numeric()` | `int\|float\|numeric-string` | `int\|float\|string` |
+| `integer(strict: true)` | `int` | `int\|string` |
+| `boolean()` | `bool\|0\|1\|'0'\|'1'` | `bool\|0\|1\|string` |
+
+- A key without `required()` is optional. It also admits `string`, because Laravel skips every non-implicit rule for a string that trims to empty, and `''` or `'  '` reaches `validated()` unchanged.
+- `nullable()` adds `null` only without `required()`, which rejects null.
+- A conditional presence modifier (`sometimes()`, `requiredIf()`, `exclude*()`, `missing*()`, `prohibited*()`, `present*()`, `filled()`) makes the key optional.
+- Any other base, `rule()`, `whenInput()`, a macro or a chain that is not a literal `FluentRule::` (or `FluentSchema`) call turns that key into an optional `mixed`.
+- A dotted, wildcard or numeric key, a spread or a non-literal key leaves the whole return type at the declared `array<string, mixed>`.
+
 ## Testing
 
 ```bash

@@ -68,7 +68,7 @@ final readonly class KeysInspector
         return null;
     }
 
-    /** @return array<Arg|Node\VariadicPlaceholder> */
+    /** @return array<Node> */
     private function factoryArgs(Node $root): array
     {
         if ($root instanceof StaticCall) {
