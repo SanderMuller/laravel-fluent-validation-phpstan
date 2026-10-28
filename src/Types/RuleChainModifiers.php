@@ -2,9 +2,7 @@
 
 namespace SanderMuller\LaravelFluentValidationPhpstan\Types;
 
-use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PHPStan\Analyser\Scope;
 
@@ -20,6 +18,8 @@ use PHPStan\Analyser\Scope;
  */
 final readonly class RuleChainModifiers
 {
+    public function __construct(private CallArguments $arguments) {}
+
     /**
      * Lower-cased names of the methods that only add a constraint the value
      * must also pass.
@@ -50,7 +50,7 @@ final readonly class RuleChainModifiers
 
     /**
      * Prefixes of the presence modifiers that can leave the key out of
-     * `validated()`. `required()` itself is matched before these, so the
+     * `validated()`. {@see isConditional()} excludes `required()` itself, so the
      * `required` prefix only catches `requiredIf()`, `requiredWith()` and the
      * rest of the conditional family.
      *
@@ -71,24 +71,37 @@ final readonly class RuleChainModifiers
         foreach ($hops as $hop) {
             $name = $this->methodName($hop);
 
-            if ($name === 'required') {
-                $required = true;
-            } elseif ($name === 'nullable') {
-                $nullable = true;
-            } elseif ($name === 'integer' && $base === FieldRuleChain::BASE_NUMERIC) {
-                $strictInteger = $strictInteger || $this->argIsTrue($hop, 'strict', 0, $scope);
-            } elseif ($name !== null && $this->isConditional($name)) {
-                $conditional = true;
-            } elseif ($name === null || ! isset(self::CONSTRAINTS[$name])) {
+            if ($name === null || ! $this->isKnown($name, $base)) {
                 return null;
             }
+
+            $required = $required || $name === 'required';
+            $nullable = $nullable || $name === 'nullable';
+            $conditional = $conditional || $this->isConditional($name);
+            $strictInteger = $strictInteger || ($name === 'integer' && $this->arguments->isTrue($hop, 'strict', 0, $scope));
         }
 
         return new FieldRuleChain($base, $strictInteger, $required, $nullable, $conditional);
     }
 
+    /**
+     * @param  FieldRuleChain::BASE_*  $base
+     */
+    private function isKnown(string $name, string $base): bool
+    {
+        if ($name === 'integer') {
+            return $base === FieldRuleChain::BASE_NUMERIC;
+        }
+
+        return $name === 'required' || $name === 'nullable' || isset(self::CONSTRAINTS[$name]) || $this->isConditional($name);
+    }
+
     private function isConditional(string $name): bool
     {
+        if ($name === 'required') {
+            return false;
+        }
+
         foreach (self::CONDITIONAL_PREFIXES as $prefix) {
             if (str_starts_with($name, $prefix)) {
                 return true;
@@ -101,33 +114,5 @@ final readonly class RuleChainModifiers
     private function methodName(MethodCall $call): ?string
     {
         return $call->name instanceof Identifier ? $call->name->toLowerString() : null;
-    }
-
-    /**
-     * Whether the `strict` flag is certainly `true`. Anything less certain reads
-     * as non-strict, whose type is the wider of the two.
-     */
-    public function argIsTrue(StaticCall|MethodCall $call, string $name, int $position, Scope $scope): bool
-    {
-        if ($call->isFirstClassCallable()) {
-            return false;
-        }
-
-        foreach ($call->getArgs() as $index => $arg) {
-            if ($this->argMatches($arg, $index, $name, $position)) {
-                return $scope->getType($arg->value)->isTrue()->yes();
-            }
-        }
-
-        return false;
-    }
-
-    private function argMatches(Arg $arg, int $index, string $name, int $position): bool
-    {
-        if ($arg->name instanceof Identifier) {
-            return $arg->name->toString() === $name;
-        }
-
-        return ! $arg->unpack && $index === $position;
     }
 }

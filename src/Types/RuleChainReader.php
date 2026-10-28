@@ -30,6 +30,7 @@ final readonly class RuleChainReader
     public function __construct(
         private FactoryInspector $factoryInspector,
         private RuleChainModifiers $modifiers,
+        private CallArguments $arguments,
     ) {}
 
     public function read(Expr $expr, Scope $scope): ?FieldRuleChain
@@ -63,7 +64,7 @@ final readonly class RuleChainReader
 
         return $this->modifiers->read(
             self::BASES[$baseName],
-            $baseName === 'integer' && $this->modifiers->argIsTrue($baseCall, 'strict', 2, $scope),
+            $baseName === 'integer' && $this->arguments->isTrue($baseCall, 'strict', 2, $scope),
             $hops,
             $scope,
         );

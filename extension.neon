@@ -45,6 +45,8 @@ services:
         tags:
             - phpstan.broker.dynamicStaticMethodReturnTypeExtension
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\CallArguments
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainModifiers
     -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainReader

@@ -2,6 +2,8 @@ services:
     -
         class: SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\FactoryInspector
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\CallArguments
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainModifiers
     -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainReader
