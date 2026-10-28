@@ -1,0 +1,6 @@
+includes:
+    - ruleset-from-services.neon
+
+parameters:
+    stubFiles:
+        - stubs/generic/RuleSetWithoutTemplate.stub

@@ -1,0 +1,16 @@
+<?php
+
+namespace SanderMuller\FluentValidation;
+
+/**
+ * A `RuleSet` without the `TValidated` template, as laravel-fluent-validation
+ * shipped it before 1.36, so the extension's non-generic guard is exercised
+ * whichever version is installed.
+ */
+final class RuleSet
+{
+    /**
+     * @param  array<string, mixed>  $rules
+     */
+    public static function from(array $rules): self {}
+}

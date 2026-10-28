@@ -24,5 +24,5 @@ final class InheritedSchema extends BaseSchemaRequest {}
 function testInheritedSchema(InheritedSchema $request): void
 {
     assertType(RuleSet::class, $request->rules());
-    assertType(RuleSet::class, $request->rules()->merge([]));
+    assertType('SanderMuller\FluentValidation\RuleSet<array<string, mixed>>', $request->rules()->merge([]));
 }

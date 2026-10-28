@@ -5,9 +5,9 @@ namespace SanderMuller\FluentValidation;
 use Illuminate\Http\Request;
 
 /**
- * Mirrors the generic from laravel-fluent-validation#24 until a release ships
- * it, so the fixtures can assert `validate()` and `check()->validated()` end to
- * end rather than only the type `from()` returns.
+ * Mirrors the generic laravel-fluent-validation 1.36 ships, so the fixtures
+ * resolve the same types against every version the test matrix installs,
+ * including the pre-1.36 versions `prefer-lowest` picks.
  *
  * @template-covariant TValidated of array<string, mixed> = array<string, mixed>
  */
@@ -18,6 +18,12 @@ final class RuleSet
      * @return self<array<string, mixed>>
      */
     public static function from(array $rules): self {}
+
+    /**
+     * @param  RuleSet<array<string, mixed>>|array<string, mixed>  $rules
+     * @return self<array<string, mixed>>
+     */
+    public function merge(self|array $rules): self {}
 
     /** @return self<TValidated> */
     public function failOnUnknownFields(): self {}

@@ -28,6 +28,6 @@ final class RuleSetFromWithoutGenericTest extends TypeInferenceTestCase
     #[Override]
     public static function getAdditionalConfigFiles(): array
     {
-        return [__DIR__ . '/ruleset-from-services.neon'];
+        return [__DIR__ . '/ruleset-from-without-generic.neon'];
     }
 }

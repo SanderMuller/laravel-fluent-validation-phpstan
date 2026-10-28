@@ -9,3 +9,7 @@ services:
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RulesStaticReturnTypeExtension
         tags:
             - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+
+parameters:
+    stubFiles:
+        - stubs/generic/RuleSet.stub
