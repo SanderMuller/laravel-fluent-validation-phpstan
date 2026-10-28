@@ -157,7 +157,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
     {
         $errors = $this->gatherAnalyserErrors([__DIR__ . '/stubs/UnboundedArrayEach.php']);
 
-        $this->assertNotEmpty($errors);
+        $this->assertNotSame([], $errors);
 
         foreach ($errors as $error) {
             $this->assertSame('sandermuller.fluentValidation.noUnboundedArrayEach', $error->getIdentifier());
