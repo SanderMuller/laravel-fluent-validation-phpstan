@@ -2,6 +2,47 @@
 
 All notable changes to `laravel-fluent-validation-phpstan` will be documented in this file.
 
+## 0.5.0 - 2026-10-28
+
+<!-- verified-sha: 22d804b68508de478a8c3b7cc4e7df145a412241 -->
+### Added
+
+- `$request->validated()` on a `final` FormRequest that uses `HasFluentRules` now resolves to the shape its rules enforce, not `mixed` (#12). The shape is read from the literal array its `schema()` (or own `rules()`) returns, using the same mapping as `RuleSet::from()`.
+  
+  ```php
+  final class StoreVideoRequest extends FormRequest
+  {
+      use HasFluentRules;
+  
+      public function schema(FluentSchema $rules): array
+      {
+          return [
+              'title' => $rules->string()->required(),
+              'duration' => FluentRule::integer(),
+          ];
+      }
+  }
+  
+  $request->validated();               // array{title: non-empty-string, duration?: float|int|string}
+  $request->validated('title');        // non-empty-string
+  $request->validated('duration', 0);  // float|int|string
+  
+  ```
+  - `validated('key', $default)` adds the default's type for an optional key, and returns the default's type for a key the rules don't declare.
+  - Laravel's `mixed` stays in place for:
+    - a non-final class, because a subclass can change its rules;
+    - a class that declares both `schema()` and `rules()`;
+    - a `passedValidation()`, `validated()`, `validator()`, `createDefaultValidator()` or `getValidatorInstance()` override;
+    - a body other than a single `return [...]` or `return RuleSet::from([...])`;
+    - a dotted key, or a default that may be a `Closure`.
+    
+  - `prepareForValidation()` is fine, because the rules still decide the shape.
+  
+  Requests that read `validated()` may see new, correct errors. An optional key reads as `T|null` even after a `$request->has('key')` guard, so pass a default or make the rule `required()`.
+  
+
+**Full Changelog**: https://github.com/SanderMuller/laravel-fluent-validation-phpstan/compare/0.4.1...0.5.0
+
 ## 0.4.1 - 2026-10-28
 
 <!-- verified-sha: e368e4bbca9c7a69927df18c94c750073066ac54 -->
@@ -33,6 +74,7 @@ All notable changes to `laravel-fluent-validation-phpstan` will be documented in
   ])->validate($payload);
   
   // array{id: float|int|numeric-string, title?: string|null}
+  
   
   
   ```
@@ -74,6 +116,7 @@ Cannot call method merge() on array<string, mixed>|SanderMuller\FluentValidation
 Generator expects value type array{SanderMuller\FluentValidation\RuleSet, string},
 array{array<string, mixed>|SanderMuller\FluentValidation\RuleSet, 'delete_interactions'} given.
   [identifier=generator.valueType]
+
 
 
 
@@ -127,12 +170,14 @@ composer require --dev sandermuller/laravel-fluent-validation-phpstan
 
 
 
+
 ```
 With [`phpstan/extension-installer`](https://github.com/phpstan/extension-installer) the rule auto-registers. Otherwise include the extension manually:
 
 ```neon
 includes:
     - vendor/sandermuller/laravel-fluent-validation-phpstan/extension.neon
+
 
 
 
