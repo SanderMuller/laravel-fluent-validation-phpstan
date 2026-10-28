@@ -1,0 +1,49 @@
+<?php
+
+namespace SanderMuller\FluentValidation;
+
+use Illuminate\Http\Request;
+
+/**
+ * Mirrors the generic from laravel-fluent-validation#24 until a release ships
+ * it, so the fixtures can assert `validate()` and `check()->validated()` end to
+ * end rather than only the type `from()` returns.
+ *
+ * @template-covariant TValidated of array<string, mixed> = array<string, mixed>
+ */
+final class RuleSet
+{
+    /**
+     * @param  array<string, mixed>  $rules
+     * @return self<array<string, mixed>>
+     */
+    public static function from(array $rules): self {}
+
+    /** @return self<TValidated> */
+    public function failOnUnknownFields(): self {}
+
+    /**
+     * @param  array<string, mixed>|Request  $data
+     * @param  array<string, string>  $messages
+     * @param  array<string, string>  $attributes
+     * @return Validated<TValidated>
+     */
+    public function check(array|Request $data, array $messages = [], array $attributes = []): Validated {}
+
+    /**
+     * @param  array<string, mixed>|Request  $data
+     * @param  array<string, string>  $messages
+     * @param  array<string, string>  $attributes
+     * @return TValidated
+     */
+    public function validate(array|Request $data, array $messages = [], array $attributes = []): array {}
+}
+
+/**
+ * @template-covariant TValidated of array<string, mixed> = array<string, mixed>
+ */
+final readonly class Validated
+{
+    /** @return TValidated */
+    public function validated(): array {}
+}
