@@ -4,6 +4,8 @@ services:
     -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\CallArguments
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleArgumentClassifier
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainModifiers
     -
         class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainReader

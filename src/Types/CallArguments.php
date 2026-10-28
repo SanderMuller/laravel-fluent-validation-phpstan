@@ -3,14 +3,15 @@
 namespace SanderMuller\LaravelFluentValidationPhpstan\Types;
 
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PHPStan\Analyser\Scope;
 
 /**
- * Reads a boolean flag such as `strict` off a rule-chain call, whether it is
- * passed by name or by position.
+ * Reads an argument off a rule-chain call, whether it is passed by name or by
+ * position.
  */
 final readonly class CallArguments
 {
@@ -20,17 +21,24 @@ final readonly class CallArguments
      */
     public function isTrue(StaticCall|MethodCall $call, string $name, int $position, Scope $scope): bool
     {
+        $value = $this->value($call, $name, $position);
+
+        return $value instanceof Expr && $scope->getType($value)->isTrue()->yes();
+    }
+
+    public function value(StaticCall|MethodCall $call, string $name, int $position): ?Expr
+    {
         if ($call->isFirstClassCallable()) {
-            return false;
+            return null;
         }
 
         foreach ($call->getArgs() as $index => $arg) {
             if ($this->argMatches($arg, $index, $name, $position)) {
-                return $scope->getType($arg->value)->isTrue()->yes();
+                return $arg->value;
             }
         }
 
-        return false;
+        return null;
     }
 
     private function argMatches(Arg $arg, int $index, string $name, int $position): bool

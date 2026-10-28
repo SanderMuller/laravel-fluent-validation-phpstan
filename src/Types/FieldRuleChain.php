@@ -10,6 +10,7 @@ use PHPStan\Type\Constant\ConstantStringType;
 use PHPStan\Type\FloatType;
 use PHPStan\Type\IntegerType;
 use PHPStan\Type\IntersectionType;
+use PHPStan\Type\MixedType;
 use PHPStan\Type\StringType;
 use PHPStan\Type\Type;
 use PHPStan\Type\TypeCombinator;
@@ -30,13 +31,13 @@ final readonly class FieldRuleChain
     public const string BASE_BOOLEAN = 'boolean';
 
     /**
-     * @param  self::BASE_*  $base
+     * @param  self::BASE_*|null  $base  null when the value cannot be read, which types it as `mixed`
      * @param  bool  $strictInteger  `integer:strict`, which only accepts a PHP `int`
      * @param  bool  $required  a plain `required()`, which rejects null and blank strings whenever the key is validated
      * @param  bool  $conditional  a modifier that can leave the key out of `validated()` even alongside `required()`
      */
     public function __construct(
-        private string $base,
+        private ?string $base,
         private bool $strictInteger,
         private bool $required,
         private bool $nullable,
@@ -56,7 +57,11 @@ final readonly class FieldRuleChain
      */
     public function valueType(): Type
     {
-        $type = $this->baseType();
+        if ($this->base === null) {
+            return new MixedType();
+        }
+
+        $type = $this->baseType($this->base);
 
         if ($this->required) {
             return $type;
@@ -67,9 +72,12 @@ final readonly class FieldRuleChain
         return $this->nullable ? TypeCombinator::addNull($type) : $type;
     }
 
-    private function baseType(): Type
+    /**
+     * @param  self::BASE_*  $base
+     */
+    private function baseType(string $base): Type
     {
-        return match ($this->base) {
+        return match ($base) {
             self::BASE_STRING => $this->required
                 ? new IntersectionType([new StringType(), new AccessoryNonEmptyStringType()])
                 : new StringType(),

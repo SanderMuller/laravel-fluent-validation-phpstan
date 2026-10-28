@@ -1,0 +1,13 @@
+<?php
+
+namespace SanderMuller\FluentValidation\Rules;
+
+/**
+ * Types a macro the way Larastan does for a registered `StringRule::macro()`,
+ * so the fixtures can prove a typed macro is still not trusted.
+ *
+ * @method static typedMacro()
+ */
+class StringRule
+{
+}
