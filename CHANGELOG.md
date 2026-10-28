@@ -2,6 +2,23 @@
 
 All notable changes to `laravel-fluent-validation-phpstan` will be documented in this file.
 
+## 0.4.1 - 2026-10-28
+
+<!-- verified-sha: e368e4bbca9c7a69927df18c94c750073066ac54 -->
+### Fixed
+
+- `required()` now keeps its key present in the inferred `RuleSet::from()` shape even when the value can't be typed (#10). `FluentRule::enum(Role::class)->required()` resolved to `role?: mixed` and reported false `offsetAccess.notFound` errors; it now resolves to `role: mixed`. The same applies to every other base outside `string`, `integer`, `numeric` and `boolean`, such as `date()`, `email()` and `field()`.
+- `->rule(...)` no longer makes the whole key unreadable (#10). The argument is classified by rule name:
+  - `'required'` and `'nullable'` act like their methods.
+  - Laravel's presence rules make the key optional, as strings (`exclude_if:...`, `sometimes`, `required_with:...`) or as objects (`Rule::excludeIf()`, `Rule::requiredIf()`, `ProhibitedIf`, including app subclasses of them).
+  - Any other rule keeps the base type, including `Password::default()`, closures, `'max:255'` and `['max', 10]`. So `string()->required()->rule(Password::default())` now resolves to `non-empty-string`.
+  - `Rule::when()`, compilable rules and an argument that isn't one literal value still turn the key into an optional `mixed`.
+  
+
+`when()`, `unless()`, `whenInput()` and macros, including macros Larastan types, still make a key optional, because they can add `sometimes` or `exclude`.
+
+**Full Changelog**: https://github.com/SanderMuller/laravel-fluent-validation-phpstan/compare/0.4.0...0.4.1
+
 ## 0.4.0 - 2026-10-28
 
 <!-- verified-sha: f78bede643ae3c836387d812f4e35e04511410e4 -->
@@ -16,6 +33,7 @@ All notable changes to `laravel-fluent-validation-phpstan` will be documented in
   ])->validate($payload);
   
   // array{id: float|int|numeric-string, title?: string|null}
+  
   
   ```
   `validated()` never casts, so each type is the set of raw inputs the chain lets through:
@@ -56,6 +74,7 @@ Cannot call method merge() on array<string, mixed>|SanderMuller\FluentValidation
 Generator expects value type array{SanderMuller\FluentValidation\RuleSet, string},
 array{array<string, mixed>|SanderMuller\FluentValidation\RuleSet, 'delete_interactions'} given.
   [identifier=generator.valueType]
+
 
 
 ```
@@ -107,12 +126,14 @@ CI matrix: 17 cells (`PHP {8.2, 8.3, 8.4} × Laravel {^11.0, ^12.0, ^13.0} × st
 composer require --dev sandermuller/laravel-fluent-validation-phpstan
 
 
+
 ```
 With [`phpstan/extension-installer`](https://github.com/phpstan/extension-installer) the rule auto-registers. Otherwise include the extension manually:
 
 ```neon
 includes:
     - vendor/sandermuller/laravel-fluent-validation-phpstan/extension.neon
+
 
 
 ```
