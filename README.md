@@ -211,6 +211,7 @@ $request->validated('duration', 0);  // float|int|string
   - it overrides `passedValidation()`, `validated()`, `validator()`, `createDefaultValidator()` or `getValidatorInstance()`.
 - `prepareForValidation()` only changes the input the rules then check, so it doesn't stop the inference.
 - A value that depends on `$this` reads as an optional `mixed`.
+- PHPStan can't connect `$request->has('key')` to `validated()`, so an optional key still reads as `T|null` after such a guard. Pass a default, `validated('key', $fallback)`, or make the rule `required()` when the key is always sent.
 
 ## Testing
 
