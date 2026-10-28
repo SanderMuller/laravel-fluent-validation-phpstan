@@ -29,8 +29,15 @@ jobs:
           php-version: '8.4'
           coverage: none
 
+      # Temporary: Rector 2.8.2 bundles phpdoc-parser 2.3, which crashes on
+      # PHPStan 2.3.4. Remove once a Rector release ships rectorphp/rector-src#8883.
+      # `--with` constrains this one install only; composer.json and consumers
+      # are untouched.
       - name: Install composer dependencies
         uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: "--with phpstan/phpstan:2.3.3"
 
       - name: Cache Rector results
         uses: actions/cache@v6
