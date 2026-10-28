@@ -3,6 +3,7 @@
 namespace SanderMuller\LaravelFluentValidationPhpstan\Tests\Types\stubs;
 
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\ExcludeIf;
 use Illuminate\Validation\Rules\Password;
 use SanderMuller\FluentValidation\FluentRule;
 use SanderMuller\FluentValidation\FluentSchema;
@@ -147,12 +148,18 @@ function ruleSetFromPresenceRules(array $data, bool $flag): void
         'whenHop' => FluentRule::string()->required()->when($flag, static fn (StringRule $rule): StringRule => $rule->nullable()),
         'unknownBaseWhen' => FluentRule::enum(RuleSetFromRole::class)->required()->when($flag, static fn (FieldRule $rule): FieldRule => $rule->sometimes()),
         'dynamicRule' => FluentRule::string()->required()->rule($flag ? 'nullable' : 'max:5'),
+        'spacedPipe' => FluentRule::string()->required()->rule('max:5| sometimes'),
+        'subclassedExclude' => FluentRule::string()->required()->rule(new AppExcludeIf($flag)),
+        'tupleSometimes' => FluentRule::string()->required()->rule(['sometimes']),
+        'excludeIfBool' => FluentRule::string()->required()->excludeIf(true),
         'macro' => FluentRule::string()->someMacro()->required(),
         'typedMacro' => FluentRule::string()->required()->typedMacro(),
     ])->validate($data);
 
-    assertType('array{excludeIf?: non-empty-string, requiredIf?: string, sometimes?: non-empty-string, excludeString?: non-empty-string, when?: mixed, whenHop?: mixed, unknownBaseWhen?: mixed, dynamicRule?: mixed, macro?: mixed, typedMacro?: mixed}', $validated);
+    assertType('array{excludeIf?: non-empty-string, requiredIf?: string, sometimes?: non-empty-string, excludeString?: non-empty-string, when?: mixed, whenHop?: mixed, unknownBaseWhen?: mixed, dynamicRule?: mixed, spacedPipe?: non-empty-string, subclassedExclude?: non-empty-string, tupleSometimes?: non-empty-string, excludeIfBool?: non-empty-string, macro?: mixed, typedMacro?: mixed}', $validated);
 }
+
+final class AppExcludeIf extends ExcludeIf {}
 
 enum RuleSetFromRole: string
 {

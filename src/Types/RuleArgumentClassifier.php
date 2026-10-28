@@ -8,6 +8,7 @@ use Illuminate\Validation\ConditionalRules;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\MethodCall;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Type\Constant\ConstantIntegerType;
 use PHPStan\Type\ObjectType;
 use PHPStan\Type\Type;
@@ -71,7 +72,7 @@ final readonly class RuleArgumentClassifier
         $effects = [];
 
         foreach (explode('|', $rules) as $rule) {
-            $effects[] = $this->classifyRuleName(strtolower(explode(':', $rule, 2)[0]));
+            $effects[] = $this->classifyRuleName(strtolower(trim(explode(':', $rule, 2)[0])));
         }
 
         return $effects;
@@ -114,7 +115,7 @@ final readonly class RuleArgumentClassifier
                 return null;
             }
 
-            if ($this->isLaravelPresenceRule($classReflection->getName())) {
+            if ($this->isLaravelPresenceRule($classReflection)) {
                 $effect = ModifierEffect::Conditional;
             }
         }
@@ -124,17 +125,19 @@ final readonly class RuleArgumentClassifier
 
     /**
      * `Rule::excludeIf()`, `Rule::requiredIf()`, `Rule::prohibitedIf()` and
-     * their siblings compile to presence rules.
+     * their siblings compile to presence rules, and so does an app class that
+     * extends one of them.
      */
-    private function isLaravelPresenceRule(string $className): bool
+    private function isLaravelPresenceRule(ClassReflection $classReflection): bool
     {
-        if (! str_starts_with($className, self::LARAVEL_RULES_NAMESPACE)) {
-            return false;
+        foreach ([$classReflection->getName(), ...$classReflection->getParentClassesNames()] as $className) {
+            if (str_starts_with($className, self::LARAVEL_RULES_NAMESPACE)
+                && $this->startsWithAny(substr($className, strlen(self::LARAVEL_RULES_NAMESPACE)), self::CONDITIONAL_OBJECT_PREFIXES)) {
+                return true;
+            }
         }
 
-        $shortName = substr($className, strlen(self::LARAVEL_RULES_NAMESPACE));
-
-        return $this->startsWithAny($shortName, self::CONDITIONAL_OBJECT_PREFIXES);
+        return false;
     }
 
     /**
