@@ -2,6 +2,45 @@
 
 All notable changes to `laravel-fluent-validation-phpstan` will be documented in this file.
 
+## 0.4.0 - 2026-10-28
+
+<!-- verified-sha: f78bede643ae3c836387d812f4e35e04511410e4 -->
+### Added
+
+- `RuleSet::from([...])` with a literal rules array now resolves to `RuleSet<array{...}>`, so `validate()` and `check()->validated()` return the shape the rules enforce at runtime instead of `array<string, mixed>` (#8). Requires `sandermuller/laravel-fluent-validation` 1.36 or later; on older versions the extension leaves `from()` untouched.
+  
+  ```php
+  $data = RuleSet::from([
+      'id' => FluentRule::integer()->required(),
+      'title' => FluentRule::string()->nullable(),
+  ])->validate($payload);
+  
+  // array{id: float|int|numeric-string, title?: string|null}
+  
+  ```
+  `validated()` never casts, so each type is the set of raw inputs the chain lets through:
+  
+  | Base | With `required()` | Without `required()` |
+  | --- | --- | --- |
+  | `string()` | `non-empty-string` | `string` |
+  | `integer()`, `numeric()` | `int\|float\|numeric-string` | `int\|float\|string` |
+  | `integer(strict: true)` | `int` | `int\|string` |
+  | `boolean()` | `bool\|0\|1\|'0'\|'1'` | `bool\|0\|1\|string` |
+  
+  - A key without `required()` is optional and also admits `string`, because Laravel skips non-implicit rules for a string that trims to empty.
+  - `nullable()` adds `null` only without `required()`.
+  - Conditional presence modifiers (`sometimes()`, `requiredIf()`, `exclude*()`, `missing*()`, `prohibited*()`, `present*()`, `filled()`) make the key optional.
+  - `rule()`, `whenInput()`, macros, other bases and non-literal values turn that key into an optional `mixed`. Dotted, wildcard, numeric or computed keys leave the whole return type at `array<string, mixed>`.
+  
+  Projects on laravel-fluent-validation 1.36 may see new, correct errors where code reads a key the rules don't declare.
+  
+
+### Internal
+
+- Replaced the abandoned `rector/type-perfect` dev dependency with `tomasvotruba/type-coverage` `^2.5.1`, which now bundles it.
+
+**Full Changelog**: https://github.com/SanderMuller/laravel-fluent-validation-phpstan/compare/0.3.0...0.4.0
+
 ## 0.3.0 - 2026-07-20
 
 ### Added
@@ -17,6 +56,7 @@ Cannot call method merge() on array<string, mixed>|SanderMuller\FluentValidation
 Generator expects value type array{SanderMuller\FluentValidation\RuleSet, string},
 array{array<string, mixed>|SanderMuller\FluentValidation\RuleSet, 'delete_interactions'} given.
   [identifier=generator.valueType]
+
 
 ```
 Two shapes hit it: a subclass extending its parent through `parent::rules()->merge([...])`, and test data providers yielding `$request->rules()` into a provider typed `array{RuleSet}`. Both are correct code, and the error count grows with each request converted to `schema()`.
@@ -66,12 +106,14 @@ CI matrix: 17 cells (`PHP {8.2, 8.3, 8.4} × Laravel {^11.0, ^12.0, ^13.0} × st
 ```bash
 composer require --dev sandermuller/laravel-fluent-validation-phpstan
 
+
 ```
 With [`phpstan/extension-installer`](https://github.com/phpstan/extension-installer) the rule auto-registers. Otherwise include the extension manually:
 
 ```neon
 includes:
     - vendor/sandermuller/laravel-fluent-validation-phpstan/extension.neon
+
 
 ```
 ## What's Changed
