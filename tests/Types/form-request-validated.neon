@@ -1,0 +1,20 @@
+includes:
+    - ruleset-from.neon
+
+services:
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\SchemaRulesResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\MethodAstLocator
+        arguments:
+            parser: @defaultAnalysisParser
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleSetArrayReader
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestEligibility
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestShapeResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestValidatedReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicMethodReturnTypeExtension
