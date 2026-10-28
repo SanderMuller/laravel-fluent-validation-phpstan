@@ -174,7 +174,9 @@ $data = RuleSet::from([
 - A key without `required()` is optional. It also admits `string`, because Laravel skips every non-implicit rule for a string that trims to empty, and `''` or `'  '` reaches `validated()` unchanged.
 - `nullable()` adds `null` only without `required()`, which rejects null.
 - A conditional presence modifier (`sometimes()`, `requiredIf()`, `exclude*()`, `missing*()`, `prohibited*()`, `present*()`, `filled()`) makes the key optional.
-- Any other base, `rule()`, `whenInput()`, a macro or a chain that is not a literal `FluentRule::` (or `FluentSchema`) call turns that key into an optional `mixed`.
+- `rule()` is read by rule name. `rule('required')` and `rule('nullable')` act like their methods, Laravel's presence rules (`exclude*`, `sometimes`, `required_*`, `prohibited*`, `missing*`, `present*`, `filled`, and objects such as `Rule::excludeIf()` or `Rule::requiredIf()`) make the key optional, and any other rule, `Password::default()` or a closure included, keeps the type.
+- Any other base (`enum()`, `date()`, `email()` and so on) or an unlisted constraint method types the value as `mixed`, but `required()` still keeps the key present.
+- `when()`, `unless()`, `whenInput()`, `Rule::when()`, a macro, a `rule()` argument that is not one literal value, or a chain that is not a literal `FluentRule::` (or `FluentSchema`) call turns that key into an optional `mixed`.
 - A dotted, wildcard or numeric key, a spread or a non-literal key leaves the whole return type at the declared `array<string, mixed>`.
 - On an older `laravel-fluent-validation`, `RuleSet` is not generic and the extension leaves `from()` untouched.
 

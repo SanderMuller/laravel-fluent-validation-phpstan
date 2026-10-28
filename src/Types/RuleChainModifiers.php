@@ -9,16 +9,20 @@ use PHPStan\Analyser\Scope;
 /**
  * Classifies the modifier hops of a rule chain for {@see RuleChainReader}.
  *
- * Every rule a chain adds can only narrow the value it lets through, except the
- * presence modifiers that skip or drop the key. Modifiers are therefore matched
- * against an allowlist: a known constraint keeps the base type, a presence
- * modifier makes the key optional, and anything else (`rule()`, `whenInput()`,
- * `when()`, a macro, a dynamic name) makes the whole chain unreadable, because
- * it could add `nullable` or `exclude` behind the analyser's back.
+ * Presence and value are judged separately. A hop keeps the key's presence
+ * when it is a native method of the rule class, is not a presence modifier and
+ * is not `when()`/`unless()`/`whenInput()`, which could add `sometimes` or
+ * `exclude` behind the analyser's back; a macro or a dynamic name makes the
+ * whole chain unreadable. The value keeps its base type only while every hop
+ * is a known constraint from the allowlist below; any other native hop leaves
+ * the key's presence intact but reads its value as `mixed`.
  */
 final readonly class RuleChainModifiers
 {
-    public function __construct(private CallArguments $arguments) {}
+    public function __construct(
+        private CallArguments $arguments,
+        private RuleArgumentClassifier $ruleArguments,
+    ) {}
 
     /**
      * Lower-cased names of the methods that only add a constraint the value
@@ -59,41 +63,95 @@ final readonly class RuleChainModifiers
     private const array CONDITIONAL_PREFIXES = ['sometimes', 'filled', 'present', 'prohibit', 'exclude', 'missing', 'required'];
 
     /**
-     * @param  FieldRuleChain::BASE_*  $base
+     * Native methods that can add arbitrary rules, presence rules included.
+     *
+     * @var array<string, true>
+     */
+    private const array UNREADABLE = ['when' => true, 'unless' => true, 'wheninput' => true];
+
+    /**
+     * @param  FieldRuleChain::BASE_*|null  $base  null for a base whose value cannot be read
      * @param  list<MethodCall>  $hops
      */
-    public function read(string $base, bool $strictInteger, array $hops, Scope $scope): ?FieldRuleChain
+    public function read(?string $base, bool $strictInteger, array $hops, Scope $scope): ?FieldRuleChain
     {
-        $required = false;
-        $nullable = false;
-        $conditional = false;
+        $effects = [];
 
         foreach ($hops as $hop) {
-            $name = $this->methodName($hop);
+            $hopEffects = $this->effects($hop, $base, $scope);
 
-            if ($name === null || ! $this->isKnown($name, $base)) {
+            if ($hopEffects === null) {
                 return null;
             }
 
-            $required = $required || $name === 'required';
-            $nullable = $nullable || $name === 'nullable';
-            $conditional = $conditional || $this->isConditional($name);
-            $strictInteger = $strictInteger || ($name === 'integer' && $this->arguments->isTrue($hop, 'strict', 0, $scope));
+            array_push($effects, ...$hopEffects);
         }
 
-        return new FieldRuleChain($base, $strictInteger, $required, $nullable, $conditional);
+        return new FieldRuleChain(
+            in_array(ModifierEffect::Opaque, $effects, true) ? null : $base,
+            $strictInteger || in_array(ModifierEffect::StrictInteger, $effects, true),
+            in_array(ModifierEffect::Required, $effects, true),
+            in_array(ModifierEffect::Nullable, $effects, true),
+            in_array(ModifierEffect::Conditional, $effects, true),
+        );
     }
 
     /**
-     * @param  FieldRuleChain::BASE_*  $base
+     * @param  FieldRuleChain::BASE_*|null  $base
+     * @return list<ModifierEffect>|null
      */
-    private function isKnown(string $name, string $base): bool
+    private function effects(MethodCall $hop, ?string $base, Scope $scope): ?array
     {
-        if ($name === 'integer') {
-            return $base === FieldRuleChain::BASE_NUMERIC;
+        $name = $this->methodName($hop);
+
+        if ($name === null || isset(self::UNREADABLE[$name]) || ! $this->isNativeRuleMethod($hop, $name, $scope)) {
+            return null;
         }
 
-        return $name === 'required' || $name === 'nullable' || isset(self::CONSTRAINTS[$name]) || $this->isConditional($name);
+        if ($name === 'rule') {
+            return $this->ruleArguments->classify($hop, $scope);
+        }
+
+        return [$this->effect($hop, $name, $base, $scope)];
+    }
+
+    /**
+     * @param  FieldRuleChain::BASE_*|null  $base
+     */
+    private function effect(MethodCall $hop, string $name, ?string $base, Scope $scope): ModifierEffect
+    {
+        return match (true) {
+            $name === 'required' => ModifierEffect::Required,
+            $name === 'nullable' => ModifierEffect::Nullable,
+            $this->isConditional($name) => ModifierEffect::Conditional,
+            $name === 'integer' && $base === FieldRuleChain::BASE_NUMERIC => $this->arguments->isTrue($hop, 'strict', 0, $scope)
+                ? ModifierEffect::StrictInteger
+                : ModifierEffect::Constraint,
+            isset(self::CONSTRAINTS[$name]) => ModifierEffect::Constraint,
+            default => ModifierEffect::Opaque,
+        };
+    }
+
+    /**
+     * A macro is reached through `__call` and can do anything, so only methods
+     * the rule class declares itself are trusted, even when an extension such
+     * as Larastan types the macro.
+     */
+    private function isNativeRuleMethod(MethodCall $hop, string $name, Scope $scope): bool
+    {
+        $classReflections = $scope->getType($hop->var)->getObjectClassReflections();
+
+        if ($classReflections === []) {
+            return false;
+        }
+
+        foreach ($classReflections as $classReflection) {
+            if (! $classReflection->hasNativeMethod($name)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function isConditional(string $name): bool
@@ -102,13 +160,7 @@ final readonly class RuleChainModifiers
             return false;
         }
 
-        foreach (self::CONDITIONAL_PREFIXES as $prefix) {
-            if (str_starts_with($name, $prefix)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_filter(self::CONDITIONAL_PREFIXES, static fn (string $prefix): bool => str_starts_with($name, $prefix)) !== [];
     }
 
     private function methodName(MethodCall $call): ?string

@@ -2,8 +2,12 @@
 
 namespace SanderMuller\LaravelFluentValidationPhpstan\Tests\Types\stubs;
 
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\ExcludeIf;
+use Illuminate\Validation\Rules\Password;
 use SanderMuller\FluentValidation\FluentRule;
 use SanderMuller\FluentValidation\FluentSchema;
+use SanderMuller\FluentValidation\Rules\FieldRule;
 use SanderMuller\FluentValidation\Rules\StringRule;
 use SanderMuller\FluentValidation\RuleSet;
 
@@ -89,7 +93,7 @@ function ruleSetFromUnreadable(array $data, StringRuleHolder $holder): void
         'name' => FluentRule::string()->required(),
     ])->validate($data);
 
-    assertType('array{raw?: mixed, date?: mixed, variable?: mixed, pipe?: mixed, closure?: mixed, closureHop?: mixed, name: non-empty-string}', $validated);
+    assertType('array{raw: non-empty-string, date: mixed, variable?: mixed, pipe?: mixed, closure?: mixed, closureHop?: mixed, name: non-empty-string}', $validated);
 }
 
 /**
@@ -103,6 +107,63 @@ function ruleSetFromSchemaBuilder(array $data, FluentSchema $rules): void
     ])->validate($data);
 
     assertType('array{name: non-empty-string, count: int}', $validated);
+}
+
+/**
+ * `required()` keeps a key present even when its value cannot be read, and a
+ * `rule()` that only adds a constraint keeps both presence and type.
+ *
+ * @param  array<string, mixed>  $data
+ */
+function ruleSetFromRequiredPresence(array $data): void
+{
+    $validated = RuleSet::from([
+        'role' => FluentRule::enum(RuleSetFromRole::class)->required(),
+        'password' => FluentRule::string()->required()->notIn(['secret'])->rule(Password::default())->confirmed(),
+        'closure' => FluentRule::string()->required()->rule(static fn (string $attribute, mixed $value, \Closure $fail): null => null),
+        'stringRule' => FluentRule::string()->required()->rule('max:255|alpha'),
+        'arrayRule' => FluentRule::integer()->required()->rule(['max', 10]),
+        'nativeHop' => FluentRule::string()->required()->dump(),
+        'ruleRequired' => FluentRule::integer()->rule('required'),
+        'ruleNullable' => FluentRule::string()->rule('nullable'),
+    ])->validate($data);
+
+    assertType('array{role: mixed, password: non-empty-string, closure: non-empty-string, stringRule: non-empty-string, arrayRule: float|int|numeric-string, nativeHop: mixed, ruleRequired: float|int|numeric-string, ruleNullable?: string|null}', $validated);
+}
+
+/**
+ * A presence rule passed through `rule()` can drop the key, and a rule that
+ * expands into arbitrary rules hides it entirely.
+ *
+ * @param  array<string, mixed>  $data
+ */
+function ruleSetFromPresenceRules(array $data, bool $flag): void
+{
+    $validated = RuleSet::from([
+        'excludeIf' => FluentRule::string()->required()->rule(Rule::excludeIf($flag)),
+        'requiredIf' => FluentRule::string()->rule(Rule::requiredIf($flag)),
+        'sometimes' => FluentRule::string()->required()->rule('sometimes'),
+        'excludeString' => FluentRule::string()->required()->rule('max:5|exclude_if:type,x'),
+        'when' => FluentRule::string()->required()->rule(Rule::when($flag, ['nullable'])),
+        'whenHop' => FluentRule::string()->required()->when($flag, static fn (StringRule $rule): StringRule => $rule->nullable()),
+        'unknownBaseWhen' => FluentRule::enum(RuleSetFromRole::class)->required()->when($flag, static fn (FieldRule $rule): FieldRule => $rule->sometimes()),
+        'dynamicRule' => FluentRule::string()->required()->rule($flag ? 'nullable' : 'max:5'),
+        'spacedPipe' => FluentRule::string()->required()->rule('max:5| sometimes'),
+        'subclassedExclude' => FluentRule::string()->required()->rule(new AppExcludeIf($flag)),
+        'tupleSometimes' => FluentRule::string()->required()->rule(['sometimes']),
+        'excludeIfBool' => FluentRule::string()->required()->excludeIf(true),
+        'macro' => FluentRule::string()->someMacro()->required(),
+        'typedMacro' => FluentRule::string()->required()->typedMacro(),
+    ])->validate($data);
+
+    assertType('array{excludeIf?: non-empty-string, requiredIf?: string, sometimes?: non-empty-string, excludeString?: non-empty-string, when?: mixed, whenHop?: mixed, unknownBaseWhen?: mixed, dynamicRule?: mixed, spacedPipe?: non-empty-string, subclassedExclude?: non-empty-string, tupleSometimes?: non-empty-string, excludeIfBool?: non-empty-string, macro?: mixed, typedMacro?: mixed}', $validated);
+}
+
+final class AppExcludeIf extends ExcludeIf {}
+
+enum RuleSetFromRole: string
+{
+    case Owner = 'owner';
 }
 
 function ruleSetFromKeepsShapeThroughModifiers(): void

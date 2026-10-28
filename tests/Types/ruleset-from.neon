@@ -4,3 +4,4 @@ includes:
 parameters:
     stubFiles:
         - stubs/generic/RuleSet.stub
+        - stubs/generic/StringRuleMacro.stub
