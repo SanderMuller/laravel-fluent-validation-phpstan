@@ -19,6 +19,7 @@ PHPStan rules that flag misuse of [`sandermuller/laravel-fluent-validation`](htt
 | `laravel-fluent-validation-phpstan` | `sandermuller/laravel-fluent-validation` |
 |---|---|
 | `^0.1` | `^1.19` |
+| `^0.4` | `^1.19`, and `^1.36` for the [`RuleSet::from()` validated shape](#rulesetfrom-validated-shape) |
 
 ## Installation
 
@@ -150,7 +151,7 @@ The extension resolves `rules()` to the concrete class's `schema()` return type 
 
 ### `RuleSet::from([...])` validated shape
 
-With a `laravel-fluent-validation` release whose `RuleSet` is generic, `RuleSet::from()` called with a literal rules array resolves to `RuleSet<array{...}>`, so `validate()` and `check()->validated()` return the shape the rules enforce at runtime:
+With `laravel-fluent-validation` 1.36 or later, whose `RuleSet` is generic, `RuleSet::from()` called with a literal rules array resolves to `RuleSet<array{...}>`, so `validate()` and `check()->validated()` return the shape the rules enforce at runtime:
 
 ```php
 $data = RuleSet::from([
@@ -175,6 +176,7 @@ $data = RuleSet::from([
 - A conditional presence modifier (`sometimes()`, `requiredIf()`, `exclude*()`, `missing*()`, `prohibited*()`, `present*()`, `filled()`) makes the key optional.
 - Any other base, `rule()`, `whenInput()`, a macro or a chain that is not a literal `FluentRule::` (or `FluentSchema`) call turns that key into an optional `mixed`.
 - A dotted, wildcard or numeric key, a spread or a non-literal key leaves the whole return type at the declared `array<string, mixed>`.
+- On an older `laravel-fluent-validation`, `RuleSet` is not generic and the extension leaves `from()` untouched.
 
 ## Testing
 
