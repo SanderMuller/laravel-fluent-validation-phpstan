@@ -2,6 +2,7 @@
 
 namespace SanderMuller\LaravelFluentValidationPhpstan\Tests\Rules;
 
+use Override;
 use PHPStan\Testing\RuleTestCase;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule;
 use SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\BoundingInspector;
@@ -40,6 +41,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
         );
     }
 
+    #[Override]
     public static function getAdditionalConfigFiles(): array
     {
         return [
@@ -155,7 +157,7 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
     {
         $errors = $this->gatherAnalyserErrors([__DIR__ . '/stubs/UnboundedArrayEach.php']);
 
-        $this->assertNotEmpty($errors);
+        $this->assertNotSame([], $errors);
 
         foreach ($errors as $error) {
             $this->assertSame('sandermuller.fluentValidation.noUnboundedArrayEach', $error->getIdentifier());

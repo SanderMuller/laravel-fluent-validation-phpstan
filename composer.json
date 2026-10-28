@@ -14,7 +14,8 @@
             "SanderMuller\\LaravelFluentValidationPhpstan\\Tests\\": "tests/"
         },
         "classmap": [
-            "tests/Rules/stubs/"
+            "tests/Rules/stubs/",
+            "tests/Types/stubs/"
         ]
     },
     "authors": [
@@ -41,14 +42,13 @@
         "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/phpunit": "^11.5.3 || ^12.5.22",
         "rector/rector": "^2.0",
-        "rector/type-perfect": "^2.0",
         "sandermuller/boost-skills": "^1.9",
-        "sandermuller/laravel-fluent-validation": "^1.19.0",
+        "sandermuller/laravel-fluent-validation": "^1.33.0",
         "sandermuller/package-boost-php": "^0.16.1",
         "spaze/phpstan-disallowed-calls": "^4.10",
         "symplify/phpstan-extensions": "^12.0.1",
         "tomasvotruba/cognitive-complexity": "^1.0",
-        "tomasvotruba/type-coverage": "^2.0"
+        "tomasvotruba/type-coverage": "^2.5.1"
     },
     "scripts": {
         "fix-cs": "vendor/bin/pint",
@@ -64,6 +64,12 @@
             "@format",
             "@phpstan-simplified",
             "@test"
+        ],
+        "post-install-cmd": [
+            "SanderMuller\\PackageBoostPhp\\Scripts\\AutoSync::run"
+        ],
+        "post-update-cmd": [
+            "SanderMuller\\PackageBoostPhp\\Scripts\\AutoSync::run"
         ]
     },
     "extra": {

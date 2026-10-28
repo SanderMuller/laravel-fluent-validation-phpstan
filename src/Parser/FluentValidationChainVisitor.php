@@ -62,14 +62,8 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
                 }
             }
 
-            $next = $current->var;
-            if ($next instanceof MethodCall) {
-                // Mark the inner hop so enterNode skips it — this replaces the
-                // parent-tracking stack from the previous approach.
-                $next->setAttribute(self::INNER_ATTR, true);
-            }
-
-            $current = $next;
+            $current = $current->var;
+            $this->markInner($current);
         }
 
         // Early exit: no 'each' call in this chain — nothing to annotate.
@@ -83,6 +77,17 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
             $hop->setAttribute(self::CHAIN_ATTR, $chainMethods);
             $hop->setAttribute(self::CHAIN_ROOT_ATTR, $root);
             $hop->setAttribute(self::RULE_ARGS_ATTR, $ruleArgs);
+        }
+    }
+
+    /**
+     * Mark an inner hop so enterNode skips it — this replaces the
+     * parent-tracking stack from the previous approach.
+     */
+    private function markInner(Node $node): void
+    {
+        if ($node instanceof MethodCall) {
+            $node->setAttribute(self::INNER_ATTR, true);
         }
     }
 

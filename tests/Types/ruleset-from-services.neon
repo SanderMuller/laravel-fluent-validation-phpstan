@@ -1,0 +1,15 @@
+services:
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Rules\Support\FactoryInspector
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\CallArguments
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainModifiers
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainReader
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\ValidatedShapeResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleSetFromReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
