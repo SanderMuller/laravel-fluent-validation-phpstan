@@ -8,10 +8,13 @@ This is `sandermuller/laravel-fluent-validation-phpstan`, a PHPStan extension pa
 src/
 ├── Parser/            # Custom PHPStan node visitors (chain-metadata annotations)
 ├── Rules/             # PHPStan rules (one class per rule)
-└── Traits/            # Shared traits (ChecksNamespace)
+├── Traits/            # Shared traits (ChecksNamespace)
+└── Types/             # Dynamic return type extensions
 tests/
 ├── Rules/             # Tests for each rule (PHPStan RuleTestCase)
 │   └── stubs/         # Test fixture PHP files referencing FluentRule
+├── Types/             # Tests for type extensions (PHPStan TypeInferenceTestCase)
+│   └── stubs/         # Fixtures carrying assertType() calls
 extension.neon         # PHPStan extension registration
 phpstan.neon.dist      # PHPStan analysis configuration
 pint.json              # Laravel Pint code style config
@@ -81,6 +84,38 @@ composer sync-ai             # Re-sync AI agent skills and guidelines
 4. Create a test extending `PHPStan\Testing\RuleTestCase` in `tests/Rules/`
 5. Use the `ChecksNamespace` trait if the rule needs to filter by namespace prefix
 6. Run `composer fix-cs` and `composer phpstan` before finalizing
+
+## Creating a Type Extension
+
+1. Create the class in `src/Types/` implementing `DynamicMethodReturnTypeExtension` (instance calls) or `DynamicStaticMethodReturnTypeExtension` (`parent::`/`self::`/`static::` calls)
+2. Register it in `extension.neon` under `services:` with the `phpstan.broker.dynamicMethodReturnTypeExtension` or `phpstan.broker.dynamicStaticMethodReturnTypeExtension` tag
+3. Create fixtures carrying `assertType()` calls in `tests/Types/stubs/`, and a test extending `PHPStan\Testing\TypeInferenceTestCase` in `tests/Types/`
+4. Add the stub directory to the `classmap` in `composer.json` when a fixture file declares more than one class
+5. Run `composer fix-cs` and `composer phpstan` before finalizing
+
+**`getClass()` never matches a trait.** PHPStan resolves these extensions against
+the class, its parents and its interfaces only
+(`DynamicReturnTypeExtensionRegistry::getDynamicExtensionsForType()`). Anchor on
+a concrete base class and check trait use inside the extension instead — a
+trait-anchored extension registers fine and silently never runs.
+
+**Mutation-check every fixture.** An extension that returns `null` on every call
+leaves the declared type in place, which is often what a naive assertion expects
+anyway. Temporarily break the extension and confirm the fixture fails; a
+type-inference test that cannot fail is worse than none.
+
+**Constructing a PHPStan `Type` needs the reflection container.** Extend
+`PHPStanTestCase` and call `self::getContainer()` in the test body before
+building any `ObjectType`, or it throws
+`MissingStaticAccessorInstanceException`. Build types in the test, never in a
+data provider — providers run before any container exists. Both mistakes hide
+themselves: the suite passes whenever another test boots the container first,
+and fails only when the file runs alone.
+
+**Do not register `PHPStanPHPUnitExtension` in `phpunit.xml`.** It papers over
+the container problem, but the class does not exist in the lowest PHPStan the
+package supports, so `prefer-lowest` CI fails on the unbootstrappable
+extension.
 
 ## Quality Standards
 

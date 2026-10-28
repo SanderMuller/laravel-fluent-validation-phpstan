@@ -35,6 +35,28 @@ services:
         tags:
             - phpstan.parser.richParserNodeVisitor
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\SchemaRulesResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RulesReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicMethodReturnTypeExtension
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RulesStaticReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\CallArguments
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainModifiers
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleChainReader
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\ValidatedShapeResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleSetFromReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicStaticMethodReturnTypeExtension
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule
         arguments:
             namespaces: %fluentValidationNoUnboundedArrayEach.namespaces%
