@@ -134,6 +134,22 @@ final class SchemaRulesResolver
     }
 
     /**
+     * Whether the class has a `schema()` whose first parameter is a
+     * `FluentSchema`, the same gate {@see resolve()} and the trait apply.
+     */
+    public function hasFluentSchema(ClassReflection $classReflection): bool
+    {
+        if (! $classReflection->hasNativeMethod('schema')) {
+            return false;
+        }
+
+        $parameters = $classReflection->getNativeMethod('schema')->getVariants()[0]->getParameters();
+
+        return isset($parameters[0])
+            && TypeCombinator::removeNull($parameters[0]->getType())->equals(new ObjectType(FluentSchema::class));
+    }
+
+    /**
      * The trait returns `[]` whenever it has no FluentSchema-shaped `schema()`.
      */
     private function emptyRules(): ConstantArrayType

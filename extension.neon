@@ -59,6 +59,20 @@ services:
         tags:
             - phpstan.broker.dynamicStaticMethodReturnTypeExtension
     -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\MethodAstLocator
+        arguments:
+            parser: @defaultAnalysisParser
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\RuleSetArrayReader
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestEligibility
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestShapeResolver
+    -
+        class: SanderMuller\LaravelFluentValidationPhpstan\Types\FormRequestValidatedReturnTypeExtension
+        tags:
+            - phpstan.broker.dynamicMethodReturnTypeExtension
+    -
         class: SanderMuller\LaravelFluentValidationPhpstan\Rules\NoUnboundedArrayEachRule
         arguments:
             namespaces: %fluentValidationNoUnboundedArrayEach.namespaces%

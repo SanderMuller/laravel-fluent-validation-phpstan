@@ -180,6 +180,39 @@ $data = RuleSet::from([
 - A dotted, wildcard or numeric key, a spread or a non-literal key leaves the whole return type at the declared `array<string, mixed>`.
 - On an older `laravel-fluent-validation`, `RuleSet` is not generic and the extension leaves `from()` untouched.
 
+### `validated()` on fluent FormRequests
+
+`$request->validated()` on a `final` FormRequest that uses `HasFluentRules` resolves to the same shape `RuleSet::from()` gets, read from the literal array its `schema()` (or its own `rules()`) returns:
+
+```php
+final class StoreVideoRequest extends FormRequest
+{
+    use HasFluentRules;
+
+    public function schema(FluentSchema $rules): array
+    {
+        return [
+            'title' => $rules->string()->required(),
+            'duration' => FluentRule::integer(),
+        ];
+    }
+}
+
+$request->validated();               // array{title: non-empty-string, duration?: float|int|string}
+$request->validated('title');        // non-empty-string
+$request->validated('duration', 0);  // float|int|string
+```
+
+- `validated('key', $default)` adds the default's type when the key is optional, and returns the default's type for a key the rules don't declare. A dotted key or a default that may be a `Closure` keeps Laravel's `mixed`.
+- The body must be a single `return [...]` or `return RuleSet::from([...])`. A spread, `parent::rules()`, a merge or any other statement keeps `mixed`.
+- `validated()` keeps `mixed` when:
+  - the class isn't `final`, because a subclass could change its rules;
+  - it declares both `schema()` and `rules()`, which the trait merges;
+  - it overrides `passedValidation()`, `validated()`, `validator()`, `createDefaultValidator()` or `getValidatorInstance()`.
+- `prepareForValidation()` only changes the input the rules then check, so it doesn't stop the inference.
+- A value that depends on `$this` reads as an optional `mixed`.
+- PHPStan can't connect `$request->has('key')` to `validated()`, so an optional key still reads as `T|null` after such a guard. Pass a default, `validated('key', $fallback)`, or make the rule `required()` when the key is always sent.
+
 ## Testing
 
 ```bash
