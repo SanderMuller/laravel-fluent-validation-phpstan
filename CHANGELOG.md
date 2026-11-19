@@ -2,6 +2,25 @@
 
 All notable changes to `laravel-fluent-validation-phpstan` will be documented in this file.
 
+## 0.5.1 - 2026-11-19
+
+<!-- verified-sha: 4c2f6ce3e846b03b2205e2aa4963626f21d5947f -->
+### Fixed
+
+- `NoUnboundedArrayEachRule` now checks `$rules->array()->each(...)` and `$rules->list()->each(...)` in a `schema(FluentSchema $rules)` method. Before, it only recognized the static `FluentRule::array()` / `FluentRule::list()` form and `new ArrayRule()`, so an unbounded chain written against the schema builder was never reported.
+  
+  Projects that use `schema()` may see new, correct errors. Add `->max(N)`, `->between(N, M)` or `->exactly(N)`, or suppress with the `sandermuller.fluentValidation.noUnboundedArrayEach` identifier.
+  
+
+### What's Changed
+
+* Update CHANGELOG for 0.5.0 by @SanderMuller in https://github.com/SanderMuller/laravel-fluent-validation-phpstan/pull/14
+* Drop the PHPStan pin in rector-check by @SanderMuller in https://github.com/SanderMuller/laravel-fluent-validation-phpstan/pull/15
+* build(deps): bump peter-evans/create-pull-request from 8.1.1 to 8.1.2 by @dependabot[bot] in https://github.com/SanderMuller/laravel-fluent-validation-phpstan/pull/16
+* build(deps): bump peter-evans/create-pull-request from 8.1.2 to 8.1.3 by @dependabot[bot] in https://github.com/SanderMuller/laravel-fluent-validation-phpstan/pull/17
+
+**Full Changelog**: https://github.com/SanderMuller/laravel-fluent-validation-phpstan/compare/0.5.0...0.5.1
+
 ## 0.5.0 - 2026-10-28
 
 <!-- verified-sha: 22d804b68508de478a8c3b7cc4e7df145a412241 -->
