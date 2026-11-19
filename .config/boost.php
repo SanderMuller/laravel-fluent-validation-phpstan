@@ -17,11 +17,11 @@ return BoostConfig::configure()
         'sandermuller/boost-skills',
         'sandermuller/package-boost-php',
     ])
-    ->withTags(
+    ->withTags([
         Tag::Php,
         Tag::Github,
         'release-automation',
-    )
+    ])
     ->withRemoteSkills([
         RemoteSkillSource::githubPath('peterfox/agent-skills', 'main', [
             'phpstan-developer' => 'phpstan-developer',
