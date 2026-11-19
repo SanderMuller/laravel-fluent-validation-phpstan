@@ -3,11 +3,15 @@
 namespace SanderMuller\LaravelFluentValidationPhpstan\Rules\Support;
 
 use PhpParser\Node;
+use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PHPStan\Analyser\Scope;
+use PHPStan\Type\ObjectType;
 use SanderMuller\FluentValidation\FluentRule;
+use SanderMuller\FluentValidation\FluentSchema;
 use SanderMuller\FluentValidation\Rules\ArrayRule;
 
 final readonly class FactoryInspector
@@ -47,8 +51,28 @@ final readonly class FactoryInspector
         return false;
     }
 
+    /**
+     * Returns true when `$seed` is `array()` or `list()` called on a
+     * {@see FluentSchema} builder, the `$rules->array()` form of a
+     * `schema(FluentSchema $rules)` method. The receiver type is resolved only
+     * after the method name matches, so other calls cost no type inference.
+     */
+    public function isSchemaArrayFactory(MethodCall $seed, Scope $scope): bool
+    {
+        return $this->methodCallNameIn($seed, self::ARRAY_FACTORIES)
+            && (new ObjectType(FluentSchema::class))->isSuperTypeOf($scope->getType($seed->var))->yes();
+    }
+
+    /**
+     * True for a `FluentRule::list()` root, or for a `list()` seed that
+     * {@see isSchemaArrayFactory()} already matched.
+     */
     public function isListFactory(Node $root): bool
     {
+        if ($root instanceof MethodCall) {
+            return $this->methodCallNameIn($root, self::LIST_FACTORIES);
+        }
+
         return $root instanceof StaticCall
             && $this->classNameIs($root->class, self::FLUENT_RULE_CLASS)
             && $this->staticCallNameIn($root, self::LIST_FACTORIES);
@@ -67,5 +91,11 @@ final readonly class FactoryInspector
         }
 
         return isset($names[$call->name->toLowerString()]);
+    }
+
+    /** @param  array<string, true>  $names */
+    private function methodCallNameIn(MethodCall $call, array $names): bool
+    {
+        return $call->name instanceof Identifier && isset($names[$call->name->toLowerString()]);
     }
 }

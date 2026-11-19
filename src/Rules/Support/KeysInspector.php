@@ -4,6 +4,7 @@ namespace SanderMuller\LaravelFluentValidationPhpstan\Rules\Support;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
@@ -75,7 +76,7 @@ final readonly class KeysInspector
             return $root->args;
         }
 
-        if ($root instanceof New_) {
+        if ($root instanceof New_ || $root instanceof MethodCall) {
             return $root->args;
         }
 

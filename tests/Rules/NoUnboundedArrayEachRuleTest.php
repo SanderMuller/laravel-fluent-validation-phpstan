@@ -79,6 +79,15 @@ final class NoUnboundedArrayEachRuleTest extends RuleTestCase
         ]);
     }
 
+    public function testFlagsUnboundedFluentSchemaCases(): void
+    {
+        $this->analyse([__DIR__ . '/stubs/SchemaArrayEach.php'], [
+            [self::EXPECTED_MESSAGE, 12],
+            [self::EXPECTED_MESSAGE, 17],
+            [self::EXPECTED_MESSAGE, 32],
+        ]);
+    }
+
     public function testDoesNotFlagBoundedArrayCases(): void
     {
         $this->analyse([__DIR__ . '/stubs/BoundedArray.php'], []);

@@ -38,7 +38,7 @@ includes:
 
 ### `NoUnboundedArrayEachRule`
 
-Flags `FluentRule::array()->each(...)` (and `FluentRule::list()->each(...)`) chains that have no upper-bound constraint. An unbounded array validated with per-item rules — especially `->exists()`, closure rules, or anything that hits the database — scales linearly with payload size. A caller that sends 10,000 items runs 10,000 per-item checks. Left unchecked, this is a classic N+1 / DoS footgun.
+Flags `FluentRule::array()->each(...)` (and `FluentRule::list()->each(...)`) chains that have no upper-bound constraint. The `$rules->array()` / `$rules->list()` form in a `schema(FluentSchema $rules)` method is checked the same way. An unbounded array validated with per-item rules — especially `->exists()`, closure rules, or anything that hits the database — scales linearly with payload size. A caller that sends 10,000 items runs 10,000 per-item checks. Left unchecked, this is a classic N+1 / DoS footgun.
 
 The rule fires on any `->each(...)` call whose receiver is an `ArrayRule` and whose chain has no `->max(N)`, `->between(N, M)`, `->exactly(N)`, and no predefined key whitelist. A rule-string form (`->rule('max:10')`, `->rule(['max', 10])`, `->rule('size:3')`, `->rule('between:1,5')`) also counts as a bound.
 

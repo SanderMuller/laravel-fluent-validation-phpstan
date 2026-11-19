@@ -56,12 +56,12 @@ final readonly class NoUnboundedArrayEachRule implements Rule
         // CHAIN_ROOT_ATTR on every each() hop; we confirm the root is a recognized
         // factory here (at analysis time, after name resolution) so that Collection::each()
         // and similar non-FluentRule calls are rejected without triggering getType().
-        $root = $node->getAttribute(FluentValidationChainVisitor::CHAIN_ROOT_ATTR);
-        if (! $root instanceof Node || ! $this->factoryInspector->isRecognizedFactory($root)) {
+        $factory = $this->factoryCall($node, $scope);
+        if (! $factory instanceof Node) {
             return [];
         }
 
-        if ($this->keysInspector->keysAreBounded($root, $scope)) {
+        if ($this->keysInspector->keysAreBounded($factory, $scope)) {
             return [];
         }
 
@@ -84,6 +84,26 @@ final readonly class NoUnboundedArrayEachRule implements Rule
                 ->line($node->getStartLine())
                 ->build(),
         ];
+    }
+
+    /**
+     * The node that creates the array rule: the chain root for `FluentRule::array()`
+     * and `new ArrayRule(...)`, or the `$rules->array()` seed of a FluentSchema
+     * chain. Null when the chain does not start with a recognized factory.
+     */
+    private function factoryCall(MethodCall $node, Scope $scope): ?Node
+    {
+        $root = $node->getAttribute(FluentValidationChainVisitor::CHAIN_ROOT_ATTR);
+        if ($root instanceof Node && $this->factoryInspector->isRecognizedFactory($root)) {
+            return $root;
+        }
+
+        $seed = $node->getAttribute(FluentValidationChainVisitor::CHAIN_SEED_ATTR);
+        if ($seed instanceof MethodCall && $this->factoryInspector->isSchemaArrayFactory($seed, $scope)) {
+            return $seed;
+        }
+
+        return null;
     }
 
     private function isEachCall(MethodCall $node): bool

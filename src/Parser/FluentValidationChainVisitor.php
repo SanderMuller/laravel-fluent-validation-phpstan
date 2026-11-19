@@ -5,6 +5,8 @@ namespace SanderMuller\LaravelFluentValidationPhpstan\Parser;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\NodeVisitorAbstract;
 
@@ -15,6 +17,13 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
     public const CHAIN_ROOT_ATTR = 'fluentValidation.chainRoot';
 
     public const RULE_ARGS_ATTR = 'fluentValidation.ruleArgs';
+
+    /**
+     * The innermost MethodCall of a chain whose root is not a static call or a
+     * `new`: `$rules->array()` in `$rules->array()->each(...)`, where the root
+     * is the `$rules` variable. Only set in that case.
+     */
+    public const CHAIN_SEED_ATTR = 'fluentValidation.chainSeed';
 
     /**
      * Set on every non-outermost MethodCall in a chain so that `enterNode` can
@@ -48,8 +57,10 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
         $eachHops = [];
         $ruleArgs = [];
         $current = $outermost;
+        $innermost = $outermost;
 
         while ($current instanceof MethodCall) {
+            $innermost = $current;
             $name = $this->hopMethodName($current);
             $chainMethods[] = $name;
 
@@ -71,12 +82,26 @@ final class FluentValidationChainVisitor extends NodeVisitorAbstract
             return;
         }
 
-        $root = $current;
+        $this->stampEachHops($eachHops, $chainMethods, $current, $ruleArgs, $innermost);
+    }
+
+    /**
+     * @param  list<MethodCall>  $eachHops
+     * @param  list<string|null>  $chainMethods
+     * @param  list<Node\Expr>  $ruleArgs
+     */
+    private function stampEachHops(array $eachHops, array $chainMethods, Node $root, array $ruleArgs, MethodCall $innermost): void
+    {
+        $seed = $root instanceof StaticCall || $root instanceof New_ ? null : $innermost;
 
         foreach ($eachHops as $hop) {
             $hop->setAttribute(self::CHAIN_ATTR, $chainMethods);
             $hop->setAttribute(self::CHAIN_ROOT_ATTR, $root);
             $hop->setAttribute(self::RULE_ARGS_ATTR, $ruleArgs);
+
+            if ($seed instanceof MethodCall) {
+                $hop->setAttribute(self::CHAIN_SEED_ATTR, $seed);
+            }
         }
     }
 
